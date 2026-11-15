@@ -4,22 +4,44 @@ import { LiveClient } from './api/live'
 import { SampleClient } from './api/sample'
 import type { NetworkClient, Viewer } from './api/types'
 import { DEFAULT_OIDC, authorizeUrl, handleCallback, readToken, signOut } from './auth/oidc'
-import { FeedView, MessagesView, PeopleView, PlanetsView } from './views/Lists'
+import { FeedView, MessagesView, PeopleView } from './views/Lists'
+import { WorldsView } from './views/Worlds'
+import { WorldView } from './views/World'
 import { ProfileView } from './views/Profile'
 import { ImportView } from './views/Import'
 import { JobsView } from './views/Jobs'
 
-export const API_BASE = 'https://api.aitherium.com'
-const USERINFO = `${DEFAULT_OIDC.issuer}/oidc/userinfo`
+// Build-time overrides exist ONLY for a local preview (a loopback OIDC client and a dev
+// proxy); the published build uses these defaults.
+const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env || {}
+export const API_BASE = env.VITE_WESYN_API_BASE ?? 'https://api.aitherium.com'
+const OIDC = {
+  ...DEFAULT_OIDC,
+  clientId: env.VITE_WESYN_OIDC_CLIENT || DEFAULT_OIDC.clientId,
+  redirectUri: env.VITE_WESYN_OIDC_REDIRECT || DEFAULT_OIDC.redirectUri,
+}
+/** Where the token and userinfo calls go (a dev proxy in a local preview; else the issuer). */
+const OIDC_API = { ...OIDC, issuer: env.VITE_WESYN_OIDC_API || OIDC.issuer }
+const USERINFO = `${OIDC_API.issuer}/oidc/userinfo`
+
+/** The pre-2026-11-15 route: `#/planets` is now `#/worlds`. */
+export function legacyRoute(hash: string): string | null {
+  return hash === '#/planets' ? '#/worlds' : null
+}
 
 const TABS = [
-  ['#/', 'feed'], ['#/people', 'people'], ['#/planets', 'planets'], ['#/messages', 'messages'], ['#/jobs', 'jobs'], ['#/import', 'import'],
+  ['#/', 'feed'], ['#/people', 'people'], ['#/worlds', 'worlds'], ['#/messages', 'messages'], ['#/jobs', 'jobs'], ['#/import', 'import'],
 ] as const
 
 function useHash(): [string, (h: string) => void] {
   const [hash, setHash] = useState(window.location.hash || '#/')
   useEffect(() => {
-    const on = () => setHash(window.location.hash || '#/')
+    const on = () => {
+      const h = window.location.hash || '#/'
+      const moved = legacyRoute(h)
+      if (moved) { window.history.replaceState(null, '', moved); setHash(moved) } else setHash(h)
+    }
+    on()
     window.addEventListener('hashchange', on)
     return () => window.removeEventListener('hashchange', on)
   }, [])
@@ -34,8 +56,12 @@ export default function App() {
 
   // Finish a sign-in round trip (the IdP calls back to the app root with ?code&state).
   useEffect(() => {
-    if (!window.location.search) return
-    handleCallback(DEFAULT_OIDC, sessionStorage, window.location.search).then(r => {
+    const search = window.location.search
+    if (!search) return
+    // Take the code out of the URL first, so a second run of this effect (React
+    // StrictMode runs it twice in development) cannot redeem a state already spent.
+    window.history.replaceState(null, '', window.location.pathname + window.location.hash)
+    handleCallback(OIDC_API, sessionStorage, search).then(r => {
       if (r.kind === 'none') return
       window.history.replaceState(null, '', window.location.pathname + (r.kind === 'ok' ? r.returnTo : '#/'))
       if (r.kind === 'ok') { setToken(r.token); window.dispatchEvent(new HashChangeEvent('hashchange')) }
@@ -57,13 +83,14 @@ export default function App() {
     return () => { live = false }
   }, [client])
 
-  const signIn = async () => { window.location.href = await authorizeUrl(DEFAULT_OIDC, sessionStorage, hash) }
+  const signIn = async () => { window.location.href = await authorizeUrl(OIDC, sessionStorage, hash) }
   const leave = () => { signOut(sessionStorage); setToken(null); setAuthErr('') }
 
   const route = hash.replace(/^#/, '') || '/'
   const user = route.startsWith('/u/') ? decodeURIComponent(route.slice(3)) : ''
+  const world = route.startsWith('/w/') ? decodeURIComponent(route.slice(3)) : ''
   return (
-    <div className="shell">
+    <div className={world ? "shell wide" : "shell"}>
       {client.mode === 'sample' && (
         <div className="banner" role="note">
           <b>Sample data.</b> Every person, server and post here is fictional. Beta.
@@ -84,9 +111,12 @@ export default function App() {
       </header>
       {authErr && <p className="err" role="alert">{authErr}</p>}
       <main>
-        {user ? <ProfileView client={client} username={user} go={go} />
+        {user ? <ProfileView client={client} username={user} go={go} me={viewer?.username || ''} />
+          : world ? (client.mode === 'live'
+            ? <WorldView client={client} slug={world} me={viewer?.username || ''} />
+            : <p className="dim">Sign in with Aitherium to open this world.</p>)
           : route === '/people' ? <PeopleView client={client} go={go} />
-          : route === '/planets' ? <PlanetsView client={client} />
+          : route === '/worlds' ? <WorldsView client={client} go={go} />
           : route === '/messages' ? <MessagesView client={client} />
           : route === '/jobs' ? <JobsView client={client} />
           : route === '/import' ? <ImportView />

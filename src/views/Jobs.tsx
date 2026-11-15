@@ -8,7 +8,7 @@ export interface Job {
   id: string
   title: string
   org: string
-  planet: string
+  world: string
   description: string
   datePosted: string          // YYYY-MM-DD
   validThrough?: string
@@ -21,11 +21,11 @@ export interface Job {
 
 /** Fictional sample jobs (every org name ends in "(sample)"; links point at nothing real). */
 export const SAMPLE_JOBS: Job[] = [
-  { id: 'j1', title: 'Platform engineer', org: 'Lantern Works (sample)', planet: 'Driftwood Collective (sample)',
+  { id: 'j1', title: 'Platform engineer', org: 'Lantern Works (sample)', world: 'Driftwood Collective (sample)',
     description: 'Own CI and the build farm. Reproducible builds, flaky-test quarantine, on-call rotation of five.',
     datePosted: '2026-11-10', validThrough: '2026-12-31', employmentType: 'FULL_TIME', remote: true,
     country: 'US', applyUrl: 'https://example.invalid/jobs/j1' },
-  { id: 'j2', title: 'Open-source maintainer (charting)', org: 'Tidewater Analytics (sample)', planet: 'Driftwood Collective (sample)',
+  { id: 'j2', title: 'Open-source maintainer (charting)', org: 'Tidewater Analytics (sample)', world: 'Driftwood Collective (sample)',
     description: 'Review PRs, run releases, mentor first-time contributors. Paid part time.',
     datePosted: '2026-11-08', employmentType: 'PART_TIME', remote: true, applyUrl: 'https://example.invalid/jobs/j2' },
 ]
@@ -79,11 +79,11 @@ export function JobsView({ client }: { client: NetworkClient }) {
   }
   return (
     <section className="stack" aria-label="Jobs">
-      <p className="dim">Jobs posted in planets. Each one is published as schema.org JobPosting data, so search engines and other boards can list it. You apply on the poster's own link.</p>
-      {jobs.length === 0 && <p className="dim">No jobs posted in your planets yet.</p>}
+      <p className="dim">Jobs posted in worlds. Each one is published as schema.org JobPosting data, so search engines and other boards can list it. You apply on the poster's own link.</p>
+      {jobs.length === 0 && <p className="dim">No jobs posted in your worlds yet.</p>}
       {jobs.map(j => (
         <article key={j.id} className="card">
-          <h2>{j.planet}</h2>
+          <h2>{j.world}</h2>
           <p><b>{j.title}</b> · {j.org}</p>
           <p className="mono dim">{j.employmentType.replace('_', ' ').toLowerCase()} · {j.remote ? 'remote' : j.locality} · posted {j.datePosted}</p>
           <p>{j.description}</p>
