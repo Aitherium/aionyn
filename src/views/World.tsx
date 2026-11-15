@@ -66,7 +66,12 @@ export function WorldView({ client, slug, me }: { client: NetworkClient; slug: s
     return () => { live = false }
   }, [client, slug, tick])
 
-  if (err) return <p className="err" role="alert">{err} <a href="#/worlds">Your worlds</a></p>
+  if (err) {
+    // A workspace with no Relay space yet (e.g. a Discord binding not provisioned in Relay).
+    const text = /not found/i.test(err)
+      ? 'This world has no Relay space yet: its forum and rooms appear once it is set up.' : err
+    return <p className="err" role="alert">{text} <a href="#/worlds">Your worlds</a></p>
+  }
   if (!world) return <p className="dim">Loading…</p>
   const pinned = world.settings.pinned || []
   const showOsint = osintOpen || !!world.settings.osint
