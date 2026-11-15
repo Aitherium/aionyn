@@ -4,7 +4,7 @@
 communities ("worlds"), a feed and messages, with Aither built in, running on the
 open-source Occupy SaaS apps. Licensed AGPL-3.0.
 
-- **Live:** https://aitherium.github.io/aionyn/ (real data only: signed out you see the
+- **Live:** https://aionyn.aitherium.com/ (real data only: signed out you see the
   welcome page and the connected worlds; sign in with Aitherium to see your network).
 - **Join from Discord:** `/wesyn join` in the Aitherium Discord makes your profile and
   answers with its link.
@@ -30,11 +30,11 @@ Aionyn is in beta. Expect rough edges and missing pieces; the issues list says w
 ```
  browser (this app, static on GitHub Pages)
    |  1. "Sign in with Aitherium": OIDC code + PKCE (S256), public client `aionyn-pages`
-   |     -> idp.aitherium.com/identity/oidc/authorize -> back to /aionyn/?code&state
+   |     -> idp.aitherium.com/identity/oidc/authorize -> back to /?code&state
    |     -> POST /oidc/token with the verifier -> access token (sessionStorage, this tab)
    |  2. every read: Authorization: Bearer <token>, credentials: 'omit'
    v
- api.aitherium.com/api/*  (non-credentialed CORS for github.io origins)
+ api.aitherium.com/api/*  (non-credentialed CORS for this app's origin)
    |-- /myspace/{user}            the member's Space; 403 when this viewer may not see it
    |-- /myspace/{user}/standing   earned community standing, OAuth-proved GitHub, connections
    |-- /myspace/network/planets   the viewer's own workspaces and their Discord servers
@@ -43,7 +43,7 @@ Aionyn is in beta. Expect rough edges and missing pieces; the issues list says w
 ```
 
 The page holds no secret. The IdP accepts exactly one callback for this client,
-`https://aitherium.github.io/aionyn/`; a fork on another Pages origin cannot obtain a
+`https://aionyn.aitherium.com/`; a fork on another Pages origin cannot obtain a
 token for it, and should register its own client.
 
 Without a token the app uses `SampleClient` (`src/api/sample.ts`). With one it uses
@@ -56,7 +56,7 @@ More: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). LinkedIn interop (sign-in, i
 
 ```bash
 npm ci
-npm run dev        # http://localhost:5173/aionyn/
+npm run dev        # http://localhost:5173/
 npm test
 npm run build
 ```
