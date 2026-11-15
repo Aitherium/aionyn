@@ -1,20 +1,23 @@
-# Wesyn (beta)
+# Aionyn (beta)
 
 **The open network where reputation is earned.** Profiles, earned standing, connections,
 communities ("worlds"), a feed and messages, with Aither built in, running on the
 open-source Occupy SaaS apps. Licensed AGPL-3.0.
 
-- **Demo:** https://aitherium.github.io/wesyn/ (sample data: every person, server and
-  post in it is fictional and labelled `(sample)`).
-- **Sign in with Aitherium** on the demo to switch to your real network.
+- **Live:** https://aitherium.github.io/aionyn/ (real data only: signed out you see the
+  welcome page and the connected worlds; sign in with Aitherium to see your network).
 - **Join from Discord:** `/wesyn join` in the Aitherium Discord makes your profile and
   answers with its link.
 
-Wesyn is in beta. Expect rough edges and missing pieces; the issues list says which.
+Aionyn is in beta. It is identity and the professional network (the LinkedIn
+replacement); it grew out of Wesyn on 2026-11-15, and Wesyn continues as its own product.
+Integrations with OccupySaaS's zeroauthy and salescompel: [docs/occupysaas-integrations.md](docs/occupysaas-integrations.md).
+
+Aionyn is in beta. Expect rough edges and missing pieces; the issues list says which.
 
 ## What makes it different
 
-| | Wesyn |
+| | Aionyn |
 |---|---|
 | Reputation | Earned in communities (shipped work, reviews, badges). Nobody types their own. |
 | GitHub | Shown only when PROVED by signing in with GitHub, never a typed handle. |
@@ -26,8 +29,8 @@ Wesyn is in beta. Expect rough edges and missing pieces; the issues list says wh
 
 ```
  browser (this app, static on GitHub Pages)
-   |  1. "Sign in with Aitherium": OIDC code + PKCE (S256), public client `wesyn-pages`
-   |     -> idp.aitherium.com/identity/oidc/authorize -> back to /wesyn/?code&state
+   |  1. "Sign in with Aitherium": OIDC code + PKCE (S256), public client `aionyn-pages`
+   |     -> idp.aitherium.com/identity/oidc/authorize -> back to /aionyn/?code&state
    |     -> POST /oidc/token with the verifier -> access token (sessionStorage, this tab)
    |  2. every read: Authorization: Bearer <token>, credentials: 'omit'
    v
@@ -40,7 +43,7 @@ Wesyn is in beta. Expect rough edges and missing pieces; the issues list says wh
 ```
 
 The page holds no secret. The IdP accepts exactly one callback for this client,
-`https://aitherium.github.io/wesyn/`; a fork on another Pages origin cannot obtain a
+`https://aitherium.github.io/aionyn/`; a fork on another Pages origin cannot obtain a
 token for it, and should register its own client.
 
 Without a token the app uses `SampleClient` (`src/api/sample.ts`). With one it uses
@@ -53,7 +56,7 @@ More: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). LinkedIn interop (sign-in, i
 
 ```bash
 npm ci
-npm run dev        # http://localhost:5173/wesyn/ (sample mode)
+npm run dev        # http://localhost:5173/aionyn/
 npm test
 npm run build
 ```
@@ -76,5 +79,5 @@ requests, posts and groups, and left out its satire content and joke mechanics. 
 
 ## Licence
 
-AGPL-3.0-only. See [LICENSE](LICENSE). The Wesyn name is not covered by the licence:
+AGPL-3.0-only. See [LICENSE](LICENSE). The Aionyn name is not covered by the licence:
 forks are welcome under a different name.
