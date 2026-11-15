@@ -9,7 +9,7 @@ export function loadImport(): ImportedProfile | null {
   catch { return null }
 }
 
-const INVITE = 'I am on Aionyn, the open network where reputation is earned: https://aitherium.github.io/aionyn/'
+const INVITE = 'I am on Aionyn, the open network where reputation is earned: https://aionyn.aitherium.com/'
 
 export function ImportView() {
   const [data, setData] = useState<ImportedProfile | null>(null)

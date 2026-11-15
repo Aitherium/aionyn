@@ -9,13 +9,13 @@
 export interface OidcConfig {
   issuer: string         // https://idp.aitherium.com/identity
   clientId: string       // aionyn-pages
-  redirectUri: string    // https://aitherium.github.io/aionyn/
+  redirectUri: string    // https://aionyn.aitherium.com/
 }
 
 export const DEFAULT_OIDC: OidcConfig = {
   issuer: 'https://idp.aitherium.com/identity',
   clientId: 'aionyn-pages',
-  redirectUri: 'https://aitherium.github.io/aionyn/',
+  redirectUri: 'https://aionyn.aitherium.com/',
 }
 
 const K_VERIFIER = 'aionyn.pkce.verifier'

@@ -40,7 +40,7 @@ export function ProfileView({ client, username, go, me = '' }: {
     else if (action.kind === 'edit') window.open('https://app.aitherium.com/spaces/' + encodeURIComponent(p.username), '_blank', 'noopener')
   }
   const copyLink = async () => {
-    const url = `https://aitherium.github.io/aionyn/#/u/${encodeURIComponent(p.username)}`
+    const url = `https://aionyn.aitherium.com/#/u/${encodeURIComponent(p.username)}`
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true)
