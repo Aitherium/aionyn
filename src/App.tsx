@@ -96,7 +96,7 @@ export default function App() {
   return (
     <div className={world ? "shell wide" : "shell"}>
       <header className="top">
-        <a className="brand" href="#/">wesyn<span className="beta">beta</span></a>
+        <a className="brand" href="#/">aionyn<span className="beta">beta</span></a>
         <nav aria-label="Sections">
           {TABS.map(([h, label]) => (
             <a key={h} href={h} aria-current={hash === h ? 'page' : undefined}>{label}</a>
@@ -123,7 +123,7 @@ export default function App() {
           : <p className="err" role="alert">No such page. <a href="#/">Back to the feed</a></p>}
       </main>
       <footer className="foot">
-        Open source (AGPL-3.0) · <a href="https://github.com/Aitherium/wesyn">github.com/Aitherium/wesyn</a> · Join from Discord with <code>/wesyn join</code>
+        Open source (AGPL-3.0) · <a href="https://github.com/Aitherium/aionyn">github.com/Aitherium/aionyn</a> · Join from Discord with <code>/wesyn join</code>
       </footer>
     </div>
   )

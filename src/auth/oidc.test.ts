@@ -18,9 +18,9 @@ describe('PKCE', () => {
 
   it('authorize carries S256, the public client and the exact callback', async () => {
     const url = new URL(await authorizeUrl(DEFAULT_OIDC, new Mem(), '#/people'))
-    expect(url.searchParams.get('client_id')).toBe('wesyn-pages')
+    expect(url.searchParams.get('client_id')).toBe('aionyn-pages')
     expect(url.searchParams.get('code_challenge_method')).toBe('S256')
-    expect(url.searchParams.get('redirect_uri')).toBe('https://aitherium.github.io/wesyn/')
+    expect(url.searchParams.get('redirect_uri')).toBe('https://aitherium.github.io/aionyn/')
   })
 
   it('refuses a callback whose state this tab did not mint', async () => {
@@ -41,6 +41,6 @@ describe('PKCE', () => {
     expect(r).toEqual({ kind: 'ok', token: 'at', returnTo: '#/planets' })
     const body = String((f.mock.calls[0] as unknown as [string, RequestInit])[1].body)
     expect(body).toContain('code_verifier=')
-    expect(s.getItem('wesyn.token')).toBe('at')
+    expect(s.getItem('aionyn.token')).toBe('at')
   })
 })

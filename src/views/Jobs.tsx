@@ -29,7 +29,7 @@ export function jobPostingLd(j: Job): Record<string, unknown> {
     datePosted: j.datePosted,
     employmentType: j.employmentType,
     hiringOrganization: { '@type': 'Organization', name: j.org },
-    identifier: { '@type': 'PropertyValue', name: 'wesyn', value: j.id },
+    identifier: { '@type': 'PropertyValue', name: 'aionyn', value: j.id },
     url: j.applyUrl,
     directApply: false,
   }

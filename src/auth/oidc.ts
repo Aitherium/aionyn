@@ -1,27 +1,27 @@
 // "Sign in with Aitherium": OIDC authorization code + PKCE (S256), no client secret.
 // AGPL-3.0-only.
 //
-// The IdP registers this app as the PUBLIC client `wesyn-pages` with exactly one
+// The IdP registers this app as the PUBLIC client `aionyn-pages` with exactly one
 // callback, the app's own Pages root. The verifier and state live in sessionStorage
 // for the one round trip; the access token lives in sessionStorage for the tab and is
 // sent only as a bearer header to the configured API, never as a cookie.
 
 export interface OidcConfig {
   issuer: string         // https://idp.aitherium.com/identity
-  clientId: string       // wesyn-pages
-  redirectUri: string    // https://aitherium.github.io/wesyn/
+  clientId: string       // aionyn-pages
+  redirectUri: string    // https://aitherium.github.io/aionyn/
 }
 
 export const DEFAULT_OIDC: OidcConfig = {
   issuer: 'https://idp.aitherium.com/identity',
-  clientId: 'wesyn-pages',
-  redirectUri: 'https://aitherium.github.io/wesyn/',
+  clientId: 'aionyn-pages',
+  redirectUri: 'https://aitherium.github.io/aionyn/',
 }
 
-const K_VERIFIER = 'wesyn.pkce.verifier'
-const K_STATE = 'wesyn.pkce.state'
-const K_RETURN = 'wesyn.pkce.return'
-const K_TOKEN = 'wesyn.token'
+const K_VERIFIER = 'aionyn.pkce.verifier'
+const K_STATE = 'aionyn.pkce.state'
+const K_RETURN = 'aionyn.pkce.return'
+const K_TOKEN = 'aionyn.token'
 
 function b64url(bytes: Uint8Array): string {
   let s = ''
