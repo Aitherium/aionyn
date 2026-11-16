@@ -2,10 +2,15 @@
 import { useState } from 'react'
 import { importExport, type ImportedProfile } from '../import/exportZip'
 
-export const IMPORT_KEY = 'wesyn.import.v1'
+export const IMPORT_KEY = 'aionyn.import.v1'
+// Read once from the pre-rename key so an import kept before 2026-11-15 is not lost.
+const OLD_KEY = 'wesyn.import.v1'
 
 export function loadImport(): ImportedProfile | null {
-  try { const v = localStorage.getItem(IMPORT_KEY); return v ? JSON.parse(v) as ImportedProfile : null }
+  try {
+    const v = localStorage.getItem(IMPORT_KEY) ?? localStorage.getItem(OLD_KEY)
+    return v ? JSON.parse(v) as ImportedProfile : null
+  }
   catch { return null }
 }
 
@@ -33,9 +38,9 @@ export function ImportView() {
     catch { setErr('This browser would not store it.'); return }
     setSaved(loadImport()); setNote('Kept on this device. It shows on your profile as claimed, not earned.')
   }
-  const forget = () => { try { localStorage.removeItem(IMPORT_KEY) } catch { /* nothing stored */ } setSaved(null); setNote('Forgotten.') }
+  const forget = () => { try { localStorage.removeItem(IMPORT_KEY); localStorage.removeItem(OLD_KEY) } catch { /* nothing stored */ } setSaved(null); setNote('Forgotten.') }
   const copyInvite = async () => {
-    try { await navigator.clipboard.writeText(INVITE); setNote('Invite text copied. Send it yourself; Wesyn contacts nobody.') }
+    try { await navigator.clipboard.writeText(INVITE); setNote('Invite text copied. Send it yourself; Aionyn contacts nobody.') }
     catch { setNote(INVITE) }
   }
   const shown = data || saved
@@ -44,9 +49,9 @@ export function ImportView() {
     <section className="stack" aria-label="Import from LinkedIn">
       <div className="card">
         <h2>Import from LinkedIn</h2>
-        <p>Use the ZIP from LinkedIn's "Get a copy of your data" (Settings, Data privacy). Wesyn reads
+        <p>Use the ZIP from LinkedIn's "Get a copy of your data" (Settings, Data privacy). Aionyn reads
           positions, skills, education and connections <b>in this browser</b>. Nothing is uploaded.</p>
-        <p className="fine">Imported facts are shown as <i>claimed</i>. Standing on Wesyn is earned in communities.</p>
+        <p className="fine">Imported facts are shown as <i>claimed</i>. Standing on Aionyn is earned in communities.</p>
         <div className="row" style={{ marginTop: 12 }}>
           <input aria-label="Data export ZIP" type="file" accept=".zip,application/zip" onChange={e => pick(e.target.files?.[0])} />
         </div>
@@ -67,7 +72,7 @@ export function ImportView() {
             <ul className="rows">{shown.education.map((e, i) => <li key={i}><b>{e.school}</b>{e.degree ? ` · ${e.degree}` : ''}</li>)}</ul>
           </div>
           <div className="card" aria-label="Invite suggestions"><h2>People you know · {shown.contacts.length}</h2>
-            <p className="dim">Invite suggestions only. Wesyn never messages them for you.</p>
+            <p className="dim">Invite suggestions only. Aionyn never messages them for you.</p>
             <ul className="rows">{shown.contacts.slice(0, 10).map((c, i) => (
               <li key={i}>{c.name}{c.company ? <span className="dim"> · {c.company}</span> : null}</li>
             ))}</ul>
