@@ -17,7 +17,7 @@ export const CONNECTED_WORLDS: World[] = [
 export function WelcomeView({ signIn }: { signIn: () => void }) {
   return (
     <section className="stack" aria-label="Welcome">
-      <p>Wesyn is the open network where reputation is earned: your profile, your standing, your connections and the worlds you belong to.</p>
+      <p>Aionyn is the open network where reputation is earned: your profile, your standing, your connections and the worlds you belong to.</p>
       <p><button className="primary" onClick={signIn}>Sign in with Aitherium</button> to see your network. Nothing here is shown to anyone who is not signed in.</p>
       <h2>Connected worlds</h2>
       <p className="dim">A world is a community: a workspace, and the Discord server bound to it. Join from its Discord, then run <code>/wesyn join</code>.</p>

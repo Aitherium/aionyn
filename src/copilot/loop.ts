@@ -13,7 +13,7 @@ export interface Step { tool: string; args: Record<string, unknown>; result: str
 
 export function systemPrompt(ctx: Pick<ToolContext, 'worldName' | 'osintTopic'>, tools: ToolDef[], me: string): string {
   return [
-    `You are ${me ? `@${me}'s` : "the member's"} Wesyn copilot, running on their own GPU inside this browser tab.`,
+    `You are ${me ? `@${me}'s` : "the member's"} Aionyn copilot, running on their own GPU inside this browser tab.`,
     `They are looking at the world "${ctx.worldName}".${ctx.osintTopic ? ` Its OSINT topic is "${ctx.osintTopic}".` : ''}`,
     'Use a tool for anything about this world, its forum or the news; never invent posts, people or sources.',
     'You cannot post or send anything yourself: the reply and message tools only make a draft the member must click to send.',

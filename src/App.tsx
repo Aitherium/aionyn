@@ -123,7 +123,7 @@ export default function App() {
           : <p className="err" role="alert">No such page. <a href="#/">Back to the feed</a></p>}
       </main>
       <footer className="foot">
-        Open source (AGPL-3.0) · <a href="https://github.com/Aitherium/aionyn">github.com/Aitherium/aionyn</a> · Join from Discord with <code>/wesyn join</code>
+        Open source (AGPL-3.0) · <a href="https://github.com/Aitherium/aionyn">github.com/Aitherium/aionyn</a>
       </footer>
     </div>
   )
