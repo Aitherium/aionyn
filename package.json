@@ -2,7 +2,7 @@
   "name": "aionyn",
   "private": true,
   "version": "0.1.0",
-  "description": "Wesyn: the open network where reputation is earned.",
+  "description": "Aionyn: your free vault, Aitherium service catalog, and open reputation network.",
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {

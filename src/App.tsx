@@ -10,6 +10,7 @@ import { ProfileView } from './views/Profile'
 import { ImportView } from './views/Import'
 import { JobsView } from './views/Jobs'
 import { WelcomeView } from './views/Welcome'
+import { VaultView } from './views/Vault'
 
 // Build-time overrides exist ONLY for a local preview (a loopback OIDC client and a dev
 // proxy); the published build uses these defaults.
@@ -29,21 +30,20 @@ export function legacyRoute(hash: string): string | null {
   return hash === '#/planets' ? '#/worlds' : null
 }
 
-/** The sibling domains, the same list aitherium.com and aitherium.org render.
- *  Names only. Measured 2026-11-24; this site's own apex (aionyn.com) has no
- *  usable TLS certificate yet, so its siblings reach it at aionyn.aitherium.com. */
+/** The sibling domains across the Aitherium ecosystem (live doors only). */
 const FAMILY_SITES: ReadonlyArray<readonly [string, string]> = [
   ['aitherium.com', 'https://aitherium.com/'],
   ['aitherium.org', 'https://aitherium.org/'],
   ['openaw.org', 'https://www.openaw.org/'],
   ['wesyn.org', 'https://wesyn.org/'],
-  ['eusyra.com', 'https://eusyra.com/'],
+  ['eusyra studio', 'https://eusyra.aitherium.com/creators'],
+  ['awpack', 'https://aitherium.github.io/awpack/'],
 ]
 
-const KNOWN = new Set(['/', '/people', '/worlds', '/planets', '/messages', '/jobs', '/import'])
+const KNOWN = new Set(['/', '/vault', '/people', '/worlds', '/planets', '/messages', '/jobs', '/import'])
 
 const TABS = [
-  ['#/', 'feed'], ['#/people', 'people'], ['#/worlds', 'worlds'], ['#/messages', 'messages'], ['#/jobs', 'jobs'], ['#/import', 'import'],
+  ['#/', 'feed'], ['#/vault', 'vault'], ['#/people', 'people'], ['#/worlds', 'worlds'], ['#/messages', 'messages'], ['#/jobs', 'jobs'], ['#/import', 'import'],
 ] as const
 
 function useHash(): [string, (h: string) => void] {
@@ -120,7 +120,8 @@ export default function App() {
       </header>
       {authErr && <p className="err" role="alert">{authErr}</p>}
       <main>
-        {!client && world ? <p className="dim">Sign in with Aitherium to open this world.</p>
+        {route === '/vault' ? <VaultView idpBase={OIDC_API.issuer} token={token} signIn={signIn} />
+          : !client && world ? <p className="dim">Sign in with Aitherium to open this world.</p>
           : !client && route !== '/import' && !(route !== '/' && !KNOWN.has(route) && !user) ? <WelcomeView signIn={signIn} />
           : user && client ? <ProfileView client={client} username={user} go={go} me={viewer?.username || ''} />
           : route === '/import' ? <ImportView />
@@ -134,9 +135,9 @@ export default function App() {
           : <p className="err" role="alert">No such page. <a href="#/">Back to the feed</a></p>}
       </main>
       <footer className="foot">
-        Open source (AGPL-3.0) · <a href="https://github.com/Aitherium/aionyn">github.com/Aitherium/aionyn</a>
+        Powered by <a href="https://aitherium.com/" rel="noopener noreferrer">Aitherium</a> · Open source (AGPL-3.0) · <a href="https://github.com/Aitherium/aionyn">github.com/Aitherium/aionyn</a>
         <span className="family">
-          {' · the family: '}
+          {' · ecosystem: '}
           {FAMILY_SITES.map(([name, href], index) => (
             <span key={href}>
               {index > 0 ? ' · ' : null}
