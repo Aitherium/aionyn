@@ -39,6 +39,22 @@ describe('App routing', () => {
     expect(container.textContent).toContain('Occupy SaaS')
     expect(container.textContent).not.toContain('(sample)')
     expect(container.textContent).not.toMatch(/planet/i)
+    expect(container.textContent).toContain('Powered by Aitherium')
+    expect(container.innerHTML).not.toContain('https://eusyra.com/')
+    expect(container.innerHTML).toContain('https://eusyra.aitherium.com/creators')
+    act(() => { root.unmount() })
+    document.body.removeChild(container)
+  })
+
+  it('renders the #/vault service catalog overview when signed out', () => {
+    window.location.hash = '#/vault'
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    act(() => { root.render(<App />) })
+    expect(container.textContent).toContain('Aionyn vault')
+    expect(container.textContent).toContain('openAW')
+    expect(container.textContent).toContain('Eusyra Studio')
     act(() => { root.unmount() })
     document.body.removeChild(container)
   })
