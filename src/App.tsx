@@ -29,6 +29,17 @@ export function legacyRoute(hash: string): string | null {
   return hash === '#/planets' ? '#/worlds' : null
 }
 
+/** The sibling domains, the same list aitherium.com and aitherium.org render.
+ *  Names only. Measured 2026-11-24; this site's own apex (aionyn.com) has no
+ *  usable TLS certificate yet, so its siblings reach it at aionyn.aitherium.com. */
+const FAMILY_SITES: ReadonlyArray<readonly [string, string]> = [
+  ['aitherium.com', 'https://aitherium.com/'],
+  ['aitherium.org', 'https://aitherium.org/'],
+  ['openaw.org', 'https://www.openaw.org/'],
+  ['wesyn.org', 'https://wesyn.org/'],
+  ['eusyra.com', 'https://eusyra.com/'],
+]
+
 const KNOWN = new Set(['/', '/people', '/worlds', '/planets', '/messages', '/jobs', '/import'])
 
 const TABS = [
@@ -124,6 +135,15 @@ export default function App() {
       </main>
       <footer className="foot">
         Open source (AGPL-3.0) · <a href="https://github.com/Aitherium/aionyn">github.com/Aitherium/aionyn</a>
+        <span className="family">
+          {' · the family: '}
+          {FAMILY_SITES.map(([name, href], index) => (
+            <span key={href}>
+              {index > 0 ? ' · ' : null}
+              <a href={href} rel="noopener noreferrer">{name}</a>
+            </span>
+          ))}
+        </span>
       </footer>
     </div>
   )
