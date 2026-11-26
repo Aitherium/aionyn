@@ -7,7 +7,7 @@ text; GitHub's licence detection reports none). Last push 2024-04-22. Read on
 
 ## Decision: port the data model, do not fork the app
 
-| question | ShlinkedIn | what Wesyn needs |
+| question | ShlinkedIn | what Aionyn needs |
 |---|---|---|
 | Hosting | a Phoenix server + Postgres | a static demo on GitHub Pages, plus the existing Aitherium backend |
 | Accounts | its own email/password accounts (`accounts/`) | "Sign in with Aitherium" only, no second auth system |
@@ -21,7 +21,7 @@ signed-in demo work on the backend that already exists. Credit is in `NOTICE` an
 
 ## Per module
 
-| ShlinkedIn module | verdict | what Wesyn took |
+| ShlinkedIn module | verdict | what Aionyn took |
 |---|---|---|
 | `profiles/profile.ex` | ADAPT | username, display name, headline, summary, verified flag -> `Profile`; dropped points, life score, interns |
 | `profiles/endorsement.ex` | ADAPT | from, to, body -> `Endorsement` with a named skill; dropped gif/emoji |
@@ -37,4 +37,4 @@ signed-in demo work on the backend that already exists. Credit is in `NOTICE` an
 | `accounts` | REJECT | replaced by Aitherium OIDC |
 | `moderation` | REFERENCE | moderation is server-side in Aitherium |
 | `news`, `levels`, `badges` | REFERENCE | badges and levels come from community standing |
-| LiveView templates and copy | REJECT | satire copy; Wesyn's UI is its own |
+| LiveView templates and copy | REJECT | satire copy; Aionyn's UI is its own |

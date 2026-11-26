@@ -1,6 +1,6 @@
-# Contributing to Wesyn
+# Contributing to Aionyn
 
-Thanks for helping. Wesyn is one project with one canonical repo: this one. The rules
+Thanks for helping. Aionyn is one project with one canonical repo: this one. The rules
 below are checked by CI, so you find out in minutes, not in review.
 
 ## The five rules (everyone)
@@ -54,5 +54,5 @@ npm run build
 
 ## Licence of contributions
 
-Wesyn is AGPL-3.0-only. By signing off a commit you certify the DCO and license your
+Aionyn is AGPL-3.0-only. By signing off a commit you certify the DCO and license your
 contribution under the same terms.

@@ -2,7 +2,7 @@
   "name": "aionyn",
   "private": true,
   "version": "0.1.0",
-  "description": "Aionyn: your free vault, Aitherium service catalog, and open reputation network.",
+  "description": "Aionyn: the open-source Aitherium Social Network and Personal Account Hub.",
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
