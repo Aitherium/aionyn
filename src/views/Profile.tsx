@@ -34,7 +34,6 @@ export function ProfileView({ client, username, go, me = '' }: {
   const p = res.profile
   const action = profileAction(p.relationship)
   const spacePublicUrl = `https://aitherium.com/spaces/${encodeURIComponent(p.username)}`
-  const spaceEditUrl = `https://app.aitherium.com/spaces/${encodeURIComponent(p.username)}`
 
   const act = async () => {
     if (action.kind === 'connect' || action.kind === 'accept') {
@@ -42,7 +41,8 @@ export function ProfileView({ client, username, go, me = '' }: {
       setNote(r.message)
     } else if (action.kind === 'message') go(`#/messages?to=${encodeURIComponent(p.username)}`)
     else if (action.kind === 'edit' && client.mode === 'sample') setNote('This is a sample profile. Sign in to edit yours.')
-    else if (action.kind === 'edit') window.open(spaceEditUrl, '_blank', 'noopener')
+    // Your own profile edits inline in the Account hub, never bouncing out to another app.
+    else if (action.kind === 'edit') go('#/account/profile')
   }
   const copyLink = async () => {
     const url = `https://aionyn.aitherium.com/#/u/${encodeURIComponent(p.username)}`

@@ -10,6 +10,7 @@ import {
   type PublicWorld,
 } from './api/public'
 import type { NetworkClient, Viewer } from './api/types'
+import { AccountView } from './views/Account'
 import { DEFAULT_OIDC, authorizeUrl, handleCallback, readToken, signOut } from './auth/oidc'
 import { LeftRail, RightRail, type ThemeMode } from './components/ShellRails'
 import { ForumsView } from './views/Forums'
@@ -20,7 +21,6 @@ import { MessagesView } from './views/Messages'
 import { NetworkView } from './views/Network'
 import { ProfileView } from './views/Profile'
 import { SpacesView } from './views/Spaces'
-import { VaultView } from './views/Vault'
 import { WelcomeView } from './views/Welcome'
 import { WorldView } from './views/World'
 import { WorldsView } from './views/Worlds'
@@ -37,9 +37,13 @@ const OIDC = {
 const OIDC_API = { ...OIDC, issuer: env.VITE_WESYN_OIDC_API || OIDC.issuer }
 const USERINFO = `${OIDC_API.issuer}/oidc/userinfo`
 
-/** The pre-2026-11-15 route: `#/planets` is now `#/worlds`. */
+/** Retired routes: `#/planets` is now `#/worlds`; `#/vault[/tab]` is now `#/account[/tab]`. */
 export function legacyRoute(hash: string): string | null {
-  return hash === '#/planets' ? '#/worlds' : null
+  if (hash === '#/planets') return '#/worlds'
+  if (hash === '#/vault' || hash.startsWith('#/vault/') || hash.startsWith('#/vault?')) {
+    return '#/account' + hash.slice('#/vault'.length)
+  }
+  return null
 }
 
 /** The sibling domains across the Aitherium ecosystem (live doors only). */
@@ -154,7 +158,18 @@ export default function App() {
   const matchedPublicWorld = world ? publicWorlds.find(w => w.slug === world) : undefined
 
   const renderCenter = () => {
-    if (route === '/vault') return <VaultView idpBase={OIDC_API.issuer} token={token} signIn={signIn} />
+    if (route === '/vault' || route === '/account' || route.startsWith('/account/') || route.startsWith('/vault/')) {
+      return (
+        <AccountView
+          tab={route.replace(/^\/(account|vault)\/?/, '')}
+          token={token}
+          viewer={viewer}
+          apiBase={API_BASE}
+          signIn={signIn}
+          go={go}
+        />
+      )
+    }
     if (route === '/network') return <NetworkView pulse={pulse} loading={pulseLoading} onRefresh={loadPulse} />
     if (route === '/forums') return <ForumsView client={client} apiBase={API_BASE} signIn={signIn} />
     if (route === '/spaces') {

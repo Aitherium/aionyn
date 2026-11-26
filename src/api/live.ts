@@ -94,7 +94,10 @@ export function toProfile(username: string, config: unknown, st: StandingBody | 
   }
   const blocks = Array.isArray(c.blocks) ? c.blocks : []
   const find = (t: string) => blocks.find(b => b && b.type === t)?.config || {}
-  const mood = find('mood')
+  // The Space's canonical `mood` section (what Account saves), else a legacy mood block.
+  const top = (c as { mood?: unknown }).mood
+  const mood = top && typeof top === 'object' && (top as { text?: unknown }).text
+    ? top as Record<string, unknown> : find('mood')
   const headline = [mood.emoji, mood.text].filter(v => typeof v === 'string' && v).join(' ')
   const name = typeof c.display_name === 'string' && c.display_name.trim()
     ? c.display_name.trim() : (st?.display_name || username)
