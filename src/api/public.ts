@@ -56,10 +56,10 @@ export interface PublicWorld {
 
 export interface AitherNetPulse {
   status: 'online' | 'healthy' | 'degraded' | 'offline' | 'unavailable'
-  onlineNodes: number | null
-  totalNodes?: number | null
-  gpuNodes?: number | null
-  totalProviders: number | null
+  onlineNodes: number | string | null
+  totalNodes?: number | string | null
+  gpuNodes?: number | string | null
+  totalProviders: number | string | null
   relaysPublic?: number | null
   roomsPublic?: number | null
   servedModels: string[]
@@ -99,18 +99,29 @@ function num(v: unknown): number | undefined {
   return undefined
 }
 
+function countVal(v: unknown): number | string | undefined {
+  if (typeof v === 'number' && Number.isFinite(v)) return v
+  if (typeof v === 'string' && v.trim()) return v.trim()
+  return undefined
+}
+
 function strList(v: unknown): string[] {
   if (!Array.isArray(v)) return []
-  return v
-    .map(item => {
-      if (typeof item === 'string') return item.trim()
-      if (item && typeof item === 'object') {
-        const o = item as Json
-        return str(o.name ?? o.channel ?? o.title ?? o.id)
-      }
-      return ''
-    })
-    .filter(Boolean)
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const item of v) {
+    let label = ''
+    if (typeof item === 'string') label = item.trim()
+    else if (item && typeof item === 'object') {
+      const o = item as Json
+      label = str(o.name ?? o.channel ?? o.title ?? o.id)
+    }
+    if (label && !seen.has(label)) {
+      seen.add(label)
+      out.push(label)
+    }
+  }
+  return out
 }
 
 async function getJson(apiBase: string, path: string, f: Fetch): Promise<{ ok: boolean; status: number; body: Json | null }> {
@@ -225,7 +236,9 @@ export function normalizeWorlds(raw: unknown): PublicWorld[] {
     const discordObj = o.discord && typeof o.discord === 'object' && !Array.isArray(o.discord) ? (o.discord as Json) : null
     const guildName = str(o.guild_name ?? o.discord_guild ?? discordObj?.guild_name ?? discordObj?.name) || undefined
     const inviteUrl = safeLink(o.invite_url ?? o.discord_invite ?? discordObj?.invite_url)
-    const bridged = strList(discordObj?.bridged_channels ?? o.bridged_channels ?? o.public_channels ?? o.channels)
+    const discordChannels = strList(discordObj?.bridged_channels ?? o.bridged_channels)
+    const pubChannels = strList(o.public_channels ?? o.channels)
+    const bridged = [...new Set([...discordChannels, ...pubChannels])]
     const workspaceUrl = safeLink(o.workspace_url ?? o.relay_url) || 'https://app.aitherium.com/'
     out.push({
       slug: slug || name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
@@ -259,11 +272,11 @@ export function normalizePulse(raw: unknown): AitherNetPulse {
         : rawStatus === 'offline' || rawStatus === 'down'
           ? 'offline'
           : 'degraded'
-  const onlineNodes = num(mesh.nodes_online ?? o.online_nodes ?? o.nodes_online ?? o.active_nodes) ?? null
-  const totalNodes = num(mesh.nodes_total ?? o.nodes_total) ?? null
-  const gpuNodes = num(mesh.gpu_nodes ?? o.gpu_nodes) ?? null
+  const onlineNodes = countVal(mesh.nodes_online ?? o.online_nodes ?? o.nodes_online ?? o.active_nodes) ?? null
+  const totalNodes = countVal(mesh.nodes_total ?? o.nodes_total) ?? null
+  const gpuNodes = countVal(mesh.gpu_nodes ?? o.gpu_nodes) ?? null
   const totalProviders =
-    num(prov?.online_count ?? o.providers_online ?? o.total_providers ?? o.providers_count ??
+    countVal(prov?.online_count ?? o.providers_online ?? o.total_providers ?? o.providers_count ??
       (Array.isArray(o.providers) ? o.providers.length : undefined)) ?? null
   const relaysPublic = num(prov?.relays_public) ?? null
   const roomsPublic = num(prov?.rooms_public) ?? null
