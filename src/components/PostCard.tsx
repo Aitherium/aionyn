@@ -67,7 +67,7 @@ export function PostCard({ item }: { item: PostCardItem }) {
       </header>
 
       {item.title && <h3 className="post-title">{item.title}</h3>}
-      <Markdown text={item.body} clamp={isLong && !expanded} />
+      {item.body && item.body !== item.title && <Markdown text={item.body} clamp={isLong && !expanded} />}
 
       <footer className="post-foot">
         {isLong && (

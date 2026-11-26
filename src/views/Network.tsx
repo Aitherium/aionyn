@@ -95,11 +95,15 @@ export function NetworkView({
           Contribute idle GPU or CPU capacity with <code>awnode</code> or manage agents and models via the
           Aither Developer Kit (<code>adk</code>). Hardware-signed device keys keep node reputation verifiable.
         </p>
-        <pre className="md-code"><code>{`# Install & enroll a node with awnode / adk
-pip install awnode awdk
-awnode init --identity https://idp.aitherium.com/identity
-awnode up --mesh aithernet`}</code></pre>
+        <pre className="md-code"><code>{pulse?.joinCli
+          ? `# Join AitherNet\n${pulse.joinCli}`
+          : `# Install & enroll a node with awnode / adk\npip install awnode awdk\nadk login && awnode join`}</code></pre>
         <div className="row wrap">
+          {pulse?.joinDocsUrl && (
+            <a className="link" href={pulse.joinDocsUrl} target="_blank" rel="noopener noreferrer">
+              AitherNet docs ↗
+            </a>
+          )}
           <a className="link" href="https://aitherium.github.io/awnode/" target="_blank" rel="noopener noreferrer">
             awnode docs ↗
           </a>

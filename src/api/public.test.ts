@@ -105,22 +105,27 @@ describe('public discovery API client (aionyn.public.*/1)', () => {
       schema: 'aionyn.public.aithernet/1',
       generated_at: '2026-11-25T21:00:00Z',
       status: 'ok',
-      mesh: { health: 'ok', nodes_total: 18, nodes_online: 14, gpu_nodes: 6 },
+      mesh: { health: 'ok', nodes_total: 13, nodes_online: '5-9', gpu_nodes: 6 },
       providers: { online_count: 5, relays_public: 2, rooms_public: 9 },
-      models: [{ id: 'm1', name: 'qwen2.5-coder', status: 'online' }, { id: 'm2', name: 'llama-3.3-70b', status: 'online' }],
-      join: { docs_url: 'https://aitherium.github.io/awnode/', cli: 'awnode up' },
+      models: [
+        { id: 'm1', name: 'unsloth/Qwen2.5-0.5B-Instruct', status: 'ready' },
+        { id: 'm2', name: 'unsloth/Qwen2.5-0.5B-Instruct', status: 'ready' },
+        { id: 'm3', name: 'qwen36-27b-dgx', status: 'standby' },
+        { id: 'm4', name: 'qwen36-27b-dgx', status: 'standby' },
+      ],
+      join: { docs_url: 'https://docs.aitherium.com/', cli: 'adk login && awnode join' },
     })
     expect(pulse).toMatchObject({
       status: 'healthy',
-      onlineNodes: 14,
-      totalNodes: 18,
+      onlineNodes: '5-9',
+      totalNodes: 13,
       gpuNodes: 6,
       totalProviders: 5,
       relaysPublic: 2,
       roomsPublic: 9,
-      servedModels: ['qwen2.5-coder', 'llama-3.3-70b'],
-      joinDocsUrl: 'https://aitherium.github.io/awnode/',
-      joinCli: 'awnode up',
+      servedModels: ['unsloth/Qwen2.5-0.5B-Instruct', 'qwen36-27b-dgx'],
+      joinDocsUrl: 'https://docs.aitherium.com/',
+      joinCli: 'adk login && awnode join',
     })
   })
 
