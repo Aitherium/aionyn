@@ -13,67 +13,61 @@ export function NetworkView({
   onRefresh: () => void
 }) {
   const status = pulse?.status || 'unavailable'
-  const statusClass = status === 'online' || status === 'healthy' ? 'ok' : status === 'degraded' ? 'warn' : ''
+  const online = status === 'online' || status === 'healthy'
+
+  const metaParts: string[] = []
+  if (pulse?.gpuNodes !== undefined && pulse.gpuNodes !== null) metaParts.push(`${pulse.gpuNodes} GPU nodes`)
+  if (pulse?.totalNodes !== undefined && pulse.totalNodes !== null) metaParts.push(`${pulse.totalNodes} registered`)
+  if (pulse?.relaysPublic !== undefined && pulse.relaysPublic !== null) metaParts.push(`${pulse.relaysPublic} public relays`)
+  if (pulse?.roomsPublic !== undefined && pulse.roomsPublic !== null) metaParts.push(`${pulse.roomsPublic} public rooms`)
+  if (pulse?.latencyMs !== undefined && pulse.latencyMs !== null) metaParts.push(`${pulse.latencyMs} ms median latency`)
+  if (pulse?.updatedAt) metaParts.push(`updated ${ago(pulse.updatedAt) || pulse.updatedAt}`)
 
   return (
     <section className="stack" aria-label="AitherNet live pulse">
-      <div className="card stack-sm">
-        <div className="row between wrap">
-          <div className="row wrap">
-            <h1>AitherNet Mesh</h1>
-            <span className={`pill ${statusClass}`}>{loading ? 'checking…' : status}</span>
-          </div>
-          <button className="ghost btn-sm" type="button" onClick={onRefresh} disabled={loading}>
-            {loading ? 'Refreshing…' : 'Refresh pulse'}
-          </button>
+      <header className="stream-header">
+        <div className="row">
+          <h1>AitherNet Mesh</h1>
+          <span className={online ? 'status-dot on' : 'status-dot'} aria-hidden="true" />
+          <span className="xs muted">{loading ? 'checking…' : status}</span>
         </div>
-        <p className="dim">
-          Distributed inference and peer compute mesh across Aitherium nodes. All counts below come directly
-          from live telemetry—never placeholder numbers.
-        </p>
+        <button className="linkish xs" type="button" onClick={onRefresh} disabled={loading}>
+          {loading ? 'Refreshing…' : 'Refresh'}
+        </button>
+      </header>
 
-        <dl className="stats">
-          <div>
-            <dt>mesh status</dt>
-            <dd>{status}</dd>
-          </div>
-          <div>
-            <dt>online nodes</dt>
-            <dd>{pulse?.onlineNodes ?? '—'}</dd>
-          </div>
-          <div>
-            <dt>providers</dt>
-            <dd>{pulse?.totalProviders ?? '—'}</dd>
-          </div>
-          <div>
-            <dt>models served</dt>
-            <dd>{pulse ? pulse.servedModels.length : '—'}</dd>
-          </div>
-        </dl>
+      <dl className="stat-strip">
+        <div>
+          <dt>Status</dt>
+          <dd>{status}</dd>
+        </div>
+        <div>
+          <dt>Online nodes</dt>
+          <dd>{pulse?.onlineNodes ?? '—'}</dd>
+        </div>
+        <div>
+          <dt>Providers</dt>
+          <dd>{pulse?.totalProviders ?? '—'}</dd>
+        </div>
+        <div>
+          <dt>Models</dt>
+          <dd>{pulse ? pulse.servedModels.length : '—'}</dd>
+        </div>
+      </dl>
 
-        {pulse?.gpuNodes !== undefined && pulse.gpuNodes !== null && (
-          <p className="mono dim small">
-            GPU nodes: {pulse.gpuNodes}
-            {pulse.totalNodes !== undefined && pulse.totalNodes !== null ? ` · Total registered: ${pulse.totalNodes}` : ''}
-            {pulse.relaysPublic !== undefined && pulse.relaysPublic !== null ? ` · Public relays: ${pulse.relaysPublic}` : ''}
-            {pulse.roomsPublic !== undefined && pulse.roomsPublic !== null ? ` · Public rooms: ${pulse.roomsPublic}` : ''}
-          </p>
-        )}
-        {pulse?.latencyMs !== undefined && pulse.latencyMs !== null && (
-          <p className="mono dim small">Median mesh latency: {pulse.latencyMs} ms</p>
-        )}
-        {pulse?.updatedAt && (
-          <p className="mono dim small">Last telemetry update: {ago(pulse.updatedAt) || pulse.updatedAt}</p>
-        )}
-        {pulse?.note && (
-          <div className="notice-banner small">
-            <strong>Status note:</strong> {pulse.note}
-          </div>
-        )}
-      </div>
+      {(metaParts.length > 0 || pulse?.note) && (
+        <div className="pane-section stack-xs">
+          {metaParts.length > 0 && (
+            <p className="mono xs muted tnum">{metaParts.join(' · ')}</p>
+          )}
+          {pulse?.note && (
+            <p className="small dim">{pulse.note}</p>
+          )}
+        </div>
+      )}
 
-      <section className="card stack-sm" aria-label="Served models">
-        <h2>Active Models &amp; Providers</h2>
+      <section className="pane-section stack-sm" aria-label="Served models">
+        <h2>Active Models</h2>
         {!pulse || pulse.servedModels.length === 0 ? (
           <p className="dim small">
             {loading
@@ -81,36 +75,32 @@ export function NetworkView({
               : 'No public models reported online right now. Connect a local node below to contribute capacity.'}
           </p>
         ) : (
-          <ul className="chips">
-            {pulse.servedModels.map(m => (
-              <li key={m} className="mono">{m}</li>
-            ))}
-          </ul>
+          <p className="mono small dim">{pulse.servedModels.join(' · ')}</p>
         )}
       </section>
 
-      <section className="card stack-sm" aria-label="Join AitherNet as a node">
-        <h2>Join AitherNet as a Node</h2>
-        <p className="dim">
+      <section className="pane-section stack-sm" aria-label="Join AitherNet as a node">
+        <h2>Join as a Node</h2>
+        <p className="dim small">
           Contribute idle GPU or CPU capacity with <code>awnode</code> or manage agents and models via the
           Aither Developer Kit (<code>adk</code>). Hardware-signed device keys keep node reputation verifiable.
         </p>
         <pre className="md-code"><code>{pulse?.joinCli
           ? `# Join AitherNet\n${pulse.joinCli}`
           : `# Install & enroll a node with awnode / adk\npip install awnode awdk\nadk login && awnode join`}</code></pre>
-        <div className="row wrap">
+        <div className="post-foot" style={{ marginTop: 4 }}>
           {pulse?.joinDocsUrl && (
-            <a className="link" href={pulse.joinDocsUrl} target="_blank" rel="noopener noreferrer">
+            <a href={pulse.joinDocsUrl} target="_blank" rel="noopener noreferrer">
               AitherNet docs ↗
             </a>
           )}
-          <a className="link" href="https://aitherium.github.io/awnode/" target="_blank" rel="noopener noreferrer">
+          <a href="https://aitherium.github.io/awnode/" target="_blank" rel="noopener noreferrer">
             awnode docs ↗
           </a>
-          <a className="link" href="https://aitherium.github.io/awdk/" target="_blank" rel="noopener noreferrer">
+          <a href="https://aitherium.github.io/awdk/" target="_blank" rel="noopener noreferrer">
             awdk CLI ↗
           </a>
-          <a className="link" href="https://aitherium.org/" target="_blank" rel="noopener noreferrer">
+          <a href="https://aitherium.org/" target="_blank" rel="noopener noreferrer">
             Aitherium Protocol ↗
           </a>
         </div>

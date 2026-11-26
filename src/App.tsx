@@ -1,4 +1,4 @@
-// The 3-column Aionyn social shell: navigation, public discovery, sign-in, hash routes.
+// The 3-column editorial Aionyn social shell: navigation, public discovery, sign-in, hash routes.
 // AGPL-3.0-only.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { LiveClient } from './api/live'
@@ -11,7 +11,7 @@ import {
 } from './api/public'
 import type { NetworkClient, Viewer } from './api/types'
 import { DEFAULT_OIDC, authorizeUrl, handleCallback, readToken, signOut } from './auth/oidc'
-import { LeftRail, RightRail } from './components/ShellRails'
+import { LeftRail, RightRail, type ThemeMode } from './components/ShellRails'
 import { ForumsView } from './views/Forums'
 import { ImportView } from './views/Import'
 import { JobsView } from './views/Jobs'
@@ -25,8 +25,8 @@ import { WelcomeView } from './views/Welcome'
 import { WorldView } from './views/World'
 import { WorldsView } from './views/Worlds'
 
-// Build-time overrides exist ONLY for a local preview (a loopback OIDC client and a dev
-// proxy); the published build uses these defaults.
+const THEME_KEY = 'aionyn.theme'
+
 const env = (import.meta as unknown as { env?: Record<string, string | undefined> }).env || {}
 export const API_BASE = env.VITE_WESYN_API_BASE ?? 'https://api.aitherium.com'
 const OIDC = {
@@ -34,7 +34,6 @@ const OIDC = {
   clientId: env.VITE_WESYN_OIDC_CLIENT || DEFAULT_OIDC.clientId,
   redirectUri: env.VITE_WESYN_OIDC_REDIRECT || DEFAULT_OIDC.redirectUri,
 }
-/** Where the token and userinfo calls go (a dev proxy in a local preview; else the issuer). */
 const OIDC_API = { ...OIDC, issuer: env.VITE_WESYN_OIDC_API || OIDC.issuer }
 const USERINFO = `${OIDC_API.issuer}/oidc/userinfo`
 
@@ -54,6 +53,14 @@ export const FAMILY_SITES: ReadonlyArray<readonly [string, string]> = [
   ['awpack', 'https://aitherium.github.io/awpack/'],
 ]
 
+function readStoredTheme(): ThemeMode {
+  try {
+    return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark'
+  } catch {
+    return 'dark'
+  }
+}
+
 function useHash(): [string, (h: string) => void] {
   const [hash, setHash] = useState(window.location.hash || '#/')
   useEffect(() => {
@@ -71,6 +78,7 @@ function useHash(): [string, (h: string) => void] {
 
 export default function App() {
   const [hash, go] = useHash()
+  const [theme, setTheme] = useState<ThemeMode>(readStoredTheme)
   const [token, setToken] = useState<string | null>(() => readToken(sessionStorage))
   const [viewer, setViewer] = useState<Viewer | null>(null)
   const [authErr, setAuthErr] = useState('')
@@ -79,7 +87,13 @@ export default function App() {
   const [publicWorlds, setPublicWorlds] = useState<PublicWorld[]>([])
   const [worldsLoading, setWorldsLoading] = useState(true)
 
-  // Finish a sign-in round trip (the IdP calls back to the app root with ?code&state).
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    try { localStorage.setItem(THEME_KEY, theme) } catch { /* ignore storage restrictions */ }
+  }, [theme])
+
+  const toggleTheme = () => setTheme(t => (t === 'dark' ? 'light' : 'dark'))
+
   useEffect(() => {
     const search = window.location.search
     if (!search) return
@@ -157,16 +171,21 @@ export default function App() {
     if (world) {
       if (!client) {
         return (
-          <section className="card stack-sm" aria-label="Sign in required for World">
-            <h2>{matchedPublicWorld?.name || world}</h2>
-            <p className="dim">Sign in with Aitherium to open this World&apos;s Relay rooms, live chat, and forum.</p>
-            <div className="row wrap">
-              <button className="primary" type="button" onClick={signIn}>Sign in with Aitherium</button>
-              {matchedPublicWorld?.inviteUrl && (
-                <a className="link" href={matchedPublicWorld.inviteUrl} target="_blank" rel="noopener noreferrer">
-                  Join on Discord ↗
-                </a>
-              )}
+          <section className="stack" aria-label="Sign in required for World">
+            <header className="stream-header">
+              <h1>{matchedPublicWorld?.name || world}</h1>
+              <a className="small dim" href="#/worlds">All worlds</a>
+            </header>
+            <div className="pane-section stack-sm">
+              <p className="dim">Sign in with Aitherium to open this World&apos;s Relay rooms, live chat, and forum.</p>
+              <div className="row wrap">
+                <button className="primary" type="button" onClick={signIn}>Sign in with Aitherium</button>
+                {matchedPublicWorld?.inviteUrl && (
+                  <a className="link" href={matchedPublicWorld.inviteUrl} target="_blank" rel="noopener noreferrer">
+                    Join on Discord ↗
+                  </a>
+                )}
+              </div>
             </div>
           </section>
         )
@@ -177,21 +196,26 @@ export default function App() {
     if (user) {
       if (!client) {
         return (
-          <section className="card stack-sm" aria-label="Sign in to view full profile">
-            <h2>@{user}</h2>
-            <p className="dim">
-              Sign in with Aitherium to view @{user}&apos;s standing, Space blocks, and connection status.
-            </p>
-            <div className="row wrap">
-              <button className="primary" type="button" onClick={signIn}>Sign in with Aitherium</button>
-              <a
-                className="link"
-                href={`https://aitherium.com/spaces/${encodeURIComponent(user)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Open public Space on aitherium.com ↗
-              </a>
+          <section className="stack" aria-label="Sign in to view full profile">
+            <header className="stream-header">
+              <h1>@{user}</h1>
+              <a className="small dim" href="#/spaces">Spaces</a>
+            </header>
+            <div className="pane-section stack-sm">
+              <p className="dim">
+                Sign in with Aitherium to view @{user}&apos;s standing, Space blocks, and connection status.
+              </p>
+              <div className="row wrap">
+                <button className="primary" type="button" onClick={signIn}>Sign in with Aitherium</button>
+                <a
+                  className="link"
+                  href={`https://aitherium.com/spaces/${encodeURIComponent(user)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open public Space on aitherium.com ↗
+                </a>
+              </div>
             </div>
           </section>
         )
@@ -203,10 +227,12 @@ export default function App() {
       return client
         ? <PeopleView client={client} go={go} />
         : (
-          <section className="card stack-sm">
-            <h2>Connections</h2>
-            <p className="dim">Sign in with Aitherium to view your connections and requests, or browse public <a href="#/spaces">AitherSpaces</a>.</p>
-            <div><button className="primary" type="button" onClick={signIn}>Sign in with Aitherium</button></div>
+          <section className="stack" aria-label="Connections">
+            <header className="stream-header"><h1>Connections</h1></header>
+            <div className="pane-section stack-sm">
+              <p className="dim">Sign in with Aitherium to view your connections and requests, or browse public <a href="#/spaces">AitherSpaces</a>.</p>
+              <div><button className="primary" type="button" onClick={signIn}>Sign in with Aitherium</button></div>
+            </div>
           </section>
         )
     }
@@ -215,10 +241,12 @@ export default function App() {
       return client
         ? <JobsView client={client} />
         : (
-          <section className="card stack-sm">
-            <h2>Jobs</h2>
-            <p className="dim">Sign in with Aitherium to see jobs posted in your Worlds. Paid work in Occupy SaaS runs on its Discord bounty board.</p>
-            <div><button className="primary" type="button" onClick={signIn}>Sign in with Aitherium</button></div>
+          <section className="stack" aria-label="Jobs">
+            <header className="stream-header"><h1>Jobs</h1></header>
+            <div className="pane-section stack-sm">
+              <p className="dim">Sign in with Aitherium to see jobs posted in your Worlds. Paid work in Occupy SaaS runs on its Discord bounty board.</p>
+              <div><button className="primary" type="button" onClick={signIn}>Sign in with Aitherium</button></div>
+            </div>
           </section>
         )
     }
@@ -226,24 +254,36 @@ export default function App() {
     if (route === '/') {
       return client
         ? <FeedView client={client} apiBase={API_BASE} />
-        : <WelcomeView signIn={signIn} apiBase={API_BASE} publicWorlds={publicWorlds} />
+        : <WelcomeView signIn={signIn} apiBase={API_BASE} />
     }
 
-    return <p className="err card" role="alert">No such page. <a href="#/">Back to the feed</a></p>
+    return (
+      <div className="pane-section">
+        <p className="err" role="alert">No such page. <a href="#/">Back to the feed</a></p>
+      </div>
+    )
   }
 
   return (
     <div className="app-frame">
       <div className="shell-grid">
-        <LeftRail route={route} viewer={viewer} signedIn={Boolean(client)} signIn={signIn} signOut={leave} />
+        <LeftRail
+          route={route}
+          viewer={viewer}
+          signedIn={Boolean(client)}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          signIn={signIn}
+          signOut={leave}
+        />
         <main className="center-col">
-          {authErr && <p className="err card" role="alert">{authErr}</p>}
+          {authErr && <p className="notice-row err" role="alert">{authErr}</p>}
           {renderCenter()}
           <footer className="foot">
             Powered by <a href="https://aitherium.com/" rel="noopener noreferrer">Aitherium</a> · Open source (AGPL-3.0) ·{' '}
             <a href="https://github.com/Aitherium/aionyn" rel="noopener noreferrer">github.com/Aitherium/aionyn</a>
             <span className="family">
-              {' · ecosystem: '}
+              {' · '}
               {FAMILY_SITES.map(([name, href], index) => (
                 <span key={href}>
                   {index > 0 ? ' · ' : null}

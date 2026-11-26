@@ -33,7 +33,6 @@ export function ImportView() {
   }
   const keep = () => {
     if (!data) return
-    // Kept on THIS device only, and only after the member chose to.
     try { localStorage.setItem(IMPORT_KEY, JSON.stringify({ ...data, contacts: data.contacts.slice(0, 500) })) }
     catch { setErr('This browser would not store it.'); return }
     setSaved(loadImport()); setNote('Kept on this device. It shows on your profile as claimed, not earned.')
@@ -47,40 +46,59 @@ export function ImportView() {
 
   return (
     <section className="stack" aria-label="Import from LinkedIn">
-      <div className="card">
-        <h2>Import from LinkedIn</h2>
-        <p>Use the ZIP from LinkedIn's "Get a copy of your data" (Settings, Data privacy). Aionyn reads
-          positions, skills, education and connections <b>in this browser</b>. Nothing is uploaded.</p>
-        <p className="fine">Imported facts are shown as <i>claimed</i>. Standing on Aionyn is earned in communities.</p>
-        <div className="row" style={{ marginTop: 12 }}>
+      <header className="stream-header"><h1>Import from LinkedIn</h1></header>
+      <div className="pane-section stack-sm">
+        <p className="dim small">
+          Use the ZIP from LinkedIn&apos;s &ldquo;Get a copy of your data&rdquo; (Settings, Data privacy). Aionyn reads
+          positions, skills, education and connections <strong>in this browser</strong>. Nothing is uploaded.
+        </p>
+        <p className="fine" style={{ marginTop: 0 }}>Imported facts are shown as <em>claimed</em>. Standing on Aionyn is earned in communities.</p>
+        <div className="row">
           <input aria-label="Data export ZIP" type="file" accept=".zip,application/zip" onChange={e => pick(e.target.files?.[0])} />
         </div>
       </div>
-      {err && <p className="err" role="alert">{err}</p>}
-      {note && <p className="dim" role="status">{note}</p>}
+
+      {err && <p className="notice-row err" role="alert">{err}</p>}
+      {note && <p className="notice-row dim" role="status">{note}</p>}
+
       {shown && (
         <>
-          <div className="card" aria-label="Imported positions"><h2>Positions · {shown.positions.length}</h2>
-            <ul className="rows">{shown.positions.slice(0, 20).map((p, i) => (
-              <li key={i}><b>{p.title}</b> · {p.company}<span className="mono dim"> {p.from}{p.to ? `–${p.to}` : '–now'}</span></li>
-            ))}</ul>
-          </div>
-          <div className="card"><h2>Skills · {shown.skills.length}</h2>
-            <ul className="chips">{shown.skills.slice(0, 40).map(s => <li key={s}>{s}</li>)}</ul>
-          </div>
-          <div className="card"><h2>Education · {shown.education.length}</h2>
-            <ul className="rows">{shown.education.map((e, i) => <li key={i}><b>{e.school}</b>{e.degree ? ` · ${e.degree}` : ''}</li>)}</ul>
-          </div>
-          <div className="card" aria-label="Invite suggestions"><h2>People you know · {shown.contacts.length}</h2>
-            <p className="dim">Invite suggestions only. Aionyn never messages them for you.</p>
-            <ul className="rows">{shown.contacts.slice(0, 10).map((c, i) => (
-              <li key={i}>{c.name}{c.company ? <span className="dim"> · {c.company}</span> : null}</li>
-            ))}</ul>
-            <button onClick={copyInvite}>Copy invite text</button>
-          </div>
-          <div className="row">
-            {data && <button className="primary" onClick={keep}>Keep on this device</button>}
-            {saved && <button onClick={forget}>Forget my import</button>}
+          <section className="pane-section" aria-label="Imported positions">
+            <h2>Positions · {shown.positions.length}</h2>
+            <ul className="rows">
+              {shown.positions.slice(0, 20).map((p, i) => (
+                <li key={i} className="small">
+                  <strong>{p.title}</strong> · {p.company}
+                  <span className="mono xs muted"> · {p.from}{p.to ? `–${p.to}` : '–now'}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <section className="pane-section">
+            <h2>Skills · {shown.skills.length}</h2>
+            <p className="xs muted">{shown.skills.slice(0, 40).join(' · ')}</p>
+          </section>
+          <section className="pane-section">
+            <h2>Education · {shown.education.length}</h2>
+            <ul className="rows">
+              {shown.education.map((e, i) => (
+                <li key={i} className="small"><strong>{e.school}</strong>{e.degree ? ` · ${e.degree}` : ''}</li>
+              ))}
+            </ul>
+          </section>
+          <section className="pane-section stack-sm" aria-label="Invite suggestions">
+            <h2>People you know · {shown.contacts.length}</h2>
+            <p className="dim small">Invite suggestions only. Aionyn never messages them for you.</p>
+            <ul className="rows">
+              {shown.contacts.slice(0, 10).map((c, i) => (
+                <li key={i} className="small">{c.name}{c.company ? <span className="dim"> · {c.company}</span> : null}</li>
+              ))}
+            </ul>
+            <div><button className="ghost btn-sm" type="button" onClick={copyInvite}>Copy invite text</button></div>
+          </section>
+          <div className="pane-section row">
+            {data && <button className="primary btn-sm" type="button" onClick={keep}>Keep on this device</button>}
+            {saved && <button className="ghost btn-sm" type="button" onClick={forget}>Forget my import</button>}
           </div>
         </>
       )}

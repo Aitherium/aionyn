@@ -46,12 +46,18 @@ export function WorldsView({
 
   return (
     <section className="stack" aria-label="Worlds">
-      <div className="card stack-sm">
-        <h2>Worlds, Workspaces &amp; Discord</h2>
-        <p className="dim">
-          A World combines an AitherOS Workspace, AitherRelay rooms &amp; forums, and its bridged Discord server.
-        </p>
-        {client?.mode === 'live' ? (
+      <header className="stream-header">
+        <h1>Worlds</h1>
+        <a className="small dim" href="https://app.aitherium.com/" target="_blank" rel="noopener noreferrer">
+          Workspaces ↗
+        </a>
+      </header>
+
+      {client?.mode === 'live' ? (
+        <div className="pane-section stack-sm">
+          <p className="dim small">
+            Each World combines an AitherOS Workspace, AitherRelay rooms &amp; forums, and its bridged Discord server.
+          </p>
           <form className="row wrap" onSubmit={create} aria-label="Create a world">
             <input
               aria-label="World name"
@@ -60,57 +66,51 @@ export function WorldsView({
               value={name}
               onChange={e => setName(e.target.value)}
             />
-            <button className="primary" type="submit" disabled={!worldSlug(name) || worldSlug(name).length < 2 || busy}>
-              {busy ? 'Creating…' : 'Create a world'}
+            <button className="primary btn-sm" type="submit" disabled={!worldSlug(name) || worldSlug(name).length < 2 || busy}>
+              {busy ? 'Creating…' : 'Create world'}
             </button>
           </form>
-        ) : (
-          <div className="row wrap">
-            <button className="primary" type="button" onClick={signIn}>Sign in to open or create Worlds</button>
-            <a className="link" href="https://app.aitherium.com/" target="_blank" rel="noopener noreferrer">
-              Open AitherOS Workspaces ↗
-            </a>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="signin-strip">
+          <span>Sign in with Aitherium to open or create Worlds and join Relay rooms.</span>
+          <button className="primary btn-sm" type="button" onClick={signIn}>Sign in</button>
+        </div>
+      )}
 
-      {msg && <p className="err" role="alert">{msg}</p>}
-      {err && <p className="err">{err}</p>}
+      {msg && <p className="notice-row err" role="alert">{msg}</p>}
+      {err && <p className="notice-row err">{err}</p>}
 
       {client?.mode === 'live' && (
-        <section className="stack-sm" aria-label="Your worlds">
-          <h2 className="section-heading">Your Worlds</h2>
-          {data === null && !err && <p className="dim">Loading your worlds…</p>}
+        <section className="stack" aria-label="Your worlds">
+          <div className="section-bar">Your Worlds</div>
+          {data === null && !err && <div className="empty-state">Loading your worlds…</div>}
           {data?.length === 0 && (
-            <div className="card dim">
-              You are not a member of any World yet. Create one above or join a connected Discord community below.
+            <div className="empty-state">
+              You are not a member of any World yet. Create one above or join a public World below.
             </div>
           )}
-          <ul className="grid">
+          <ul className="list-rows">
             {data?.map(w => {
               const pub = pubBySlug.get(w.slug)
               const invite = w.discordInvite || pub?.inviteUrl
               const bridged = w.bridgedChannels?.length ? w.bridgedChannels : pub?.bridgedChannels || []
               const wsUrl = w.workspaceUrl || pub?.workspaceUrl || 'https://app.aitherium.com/'
               return (
-                <li key={w.slug} className="card stack-sm">
-                  <div className="row between">
-                    <h2><a href={`#/worlds/${encodeURIComponent(w.slug)}`}>{w.name}</a></h2>
-                    <span className="pill accent">{w.role}</span>
+                <li key={w.slug} className="list-row stack-xs">
+                  <div className="row between wrap">
+                    <a className="thread-link" href={`#/worlds/${encodeURIComponent(w.slug)}`}>{w.name}</a>
+                    <span className="xs muted tnum">
+                      {w.role}{w.members !== undefined ? ` · ${w.members} members` : ''}
+                    </span>
                   </div>
-                  <p className="mono dim small">
-                    {w.members !== undefined ? `${w.members} members` : 'Relay workspace'}
-                    {w.discord.length ? ` · Discord: ${w.discord.join(', ')}` : ''}
-                  </p>
                   {bridged.length > 0 && (
-                    <div className="post-chips">
-                      {bridged.slice(0, 4).map(ch => <span key={ch} className="pill">{ch}</span>)}
-                    </div>
+                    <p className="mono xs muted">{bridged.slice(0, 5).join(' · ')}</p>
                   )}
-                  <div className="row wrap small">
-                    <a className="link" href={`#/worlds/${encodeURIComponent(w.slug)}`}>Open World</a>
-                    <a className="dim" href={wsUrl} target="_blank" rel="noopener noreferrer">Workspace ↗</a>
-                    {invite && <a className="dim" href={invite} target="_blank" rel="noopener noreferrer">Discord ↗</a>}
+                  <div className="post-foot">
+                    <a href={`#/worlds/${encodeURIComponent(w.slug)}`}>Open World</a>
+                    <a href={wsUrl} target="_blank" rel="noopener noreferrer">Workspace ↗</a>
+                    {invite && <a href={invite} target="_blank" rel="noopener noreferrer">Discord ↗</a>}
                   </div>
                 </li>
               )
@@ -119,26 +119,30 @@ export function WorldsView({
         </section>
       )}
 
-      <section className="stack-sm" aria-label="Public Worlds and Discord servers">
-        <h2 className="section-heading">Public Worlds &amp; Discord Servers</h2>
-        <ul className="grid">
+      <section className="stack" aria-label="Public Worlds and Discord servers">
+        <div className="section-bar">Public Worlds &amp; Discord</div>
+        <ul className="list-rows">
           {pubList.map(w => (
-            <li key={w.slug} className="card stack-sm">
-              <div className="row between">
-                <h2><a href={`#/worlds/${encodeURIComponent(w.slug)}`}>{w.name}</a></h2>
-                {typeof w.members === 'number' && <span className="pill">{w.members} members</span>}
+            <li key={w.slug} className="list-row stack-xs">
+              <div className="row between wrap">
+                <a className="thread-link" href={`#/worlds/${encodeURIComponent(w.slug)}`}>{w.name}</a>
+                <span className="xs muted tnum">
+                  {[
+                    typeof w.members === 'number' ? `${w.members} members` : '',
+                    w.guildName || '',
+                  ].filter(Boolean).join(' · ')}
+                </span>
               </div>
               {w.description && <p className="dim small">{w.description}</p>}
-              <div className="post-chips">
-                {w.guildName && <span className="pill discord">{w.guildName}</span>}
-                {w.bridgedChannels.slice(0, 4).map(ch => <span key={ch} className="pill">{ch}</span>)}
-              </div>
-              <div className="row wrap small">
+              {w.bridgedChannels.length > 0 && (
+                <p className="mono xs muted">{w.bridgedChannels.slice(0, 5).join(' · ')}</p>
+              )}
+              <div className="post-foot">
                 {w.inviteUrl && (
-                  <a className="link" href={w.inviteUrl} target="_blank" rel="noopener noreferrer">Join Discord ↗</a>
+                  <a href={w.inviteUrl} target="_blank" rel="noopener noreferrer">Discord ↗</a>
                 )}
-                <a className="link" href={w.workspaceUrl} target="_blank" rel="noopener noreferrer">Workspace ↗</a>
-                {client && <a className="dim" href={`#/worlds/${encodeURIComponent(w.slug)}`}>Open</a>}
+                <a href={w.workspaceUrl} target="_blank" rel="noopener noreferrer">Workspace ↗</a>
+                <a href={`#/worlds/${encodeURIComponent(w.slug)}`}>Open World</a>
               </div>
             </li>
           ))}

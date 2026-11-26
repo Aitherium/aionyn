@@ -58,38 +58,37 @@ export function FeedView({ client, apiBase }: { client: NetworkClient; apiBase?:
 
   return (
     <section className="stack" aria-label="Feed">
-      <Composer client={client} rooms={rooms} onPosted={() => setReload(n => n + 1)} />
-
-      <div className="row between wrap">
-        <div className="filter-pills" role="group" aria-label="Feed filter">
+      <header className="stream-header">
+        <h1>Feed</h1>
+        <div className="tab-bar" role="tablist" aria-label="Feed filter">
           {([
-            ['all', 'All activity'],
+            ['all', 'All'],
             ['rooms', 'My rooms'],
-            ['public', 'Public & openAW'],
+            ['public', 'Public'],
           ] as const).map(([key, label]) => (
             <button
               key={key}
               type="button"
-              className={scope === key ? 'chip-btn active' : 'chip-btn'}
+              role="tab"
+              aria-selected={scope === key}
+              className={scope === key ? 'tab-btn active' : 'tab-btn'}
               onClick={() => setScope(key)}
             >
               {label}
             </button>
           ))}
         </div>
-        <button className="ghost btn-sm" type="button" onClick={() => setReload(n => n + 1)}>
+        <button className="linkish xs" type="button" onClick={() => setReload(n => n + 1)}>
           Refresh
         </button>
-      </div>
+      </header>
 
-      <p className="dim small">
-        Relay channels and their bridged Discord forums share one conversation stream.
-      </p>
+      <Composer client={client} rooms={rooms} onPosted={() => setReload(n => n + 1)} />
 
-      {err && <p className="err" role="alert">{err}</p>}
-      {!data && !err && <p className="dim">Loading your rooms…</p>}
+      {err && <p className="notice-row err" role="alert">{err}</p>}
+      {!data && !err && <div className="empty-state">Loading your rooms…</div>}
       {data && combined.length === 0 && (
-        <div className="card dim">Nothing yet in the rooms you can read. Join a World or post above.</div>
+        <div className="empty-state">Nothing yet in the rooms you can read. Join a World or post above.</div>
       )}
       {combined.map(item => (
         <PostCard key={item.id} item={item} />
@@ -112,24 +111,30 @@ export function PeopleView({ client, go }: { client: NetworkClient; go: (h: stri
 
   return (
     <section className="stack" aria-label="People">
-      <div className="card stack-sm">
-        <h2>Your connections</h2>
+      <header className="stream-header">
+        <h1>Connections</h1>
+        <a className="small dim" href="#/spaces">Spaces</a>
+      </header>
+
+      <div className="pane-section">
         <form className="row" onSubmit={open}>
           <input aria-label="Find a member" placeholder="Jump to @handle" value={draft} onChange={e => setDraft(e.target.value)} />
           <button className="primary" type="submit" disabled={!cleanHandle(draft)}>Open Space</button>
         </form>
       </div>
-      {note && <p className="ok" role="status">{note}</p>}
-      {err && <p className="err">{err}</p>}
+
+      {note && <p className="notice-row ok" role="status">{note}</p>}
+      {err && <p className="notice-row err">{err}</p>}
+
       {data && data.incoming.length > 0 && (
-        <div className="card">
-          <h2>Asked to connect · {data.incoming.length}</h2>
-          <ul className="rows">
+        <>
+          <div className="section-bar">Asked to connect · {data.incoming.length}</div>
+          <ul className="list-rows">
             {data.incoming.map(r => (
-              <li key={r.id} className="row between wrap">
+              <li key={r.id} className="list-row row between wrap">
                 <span>
-                  <a href={`#/u/${encodeURIComponent(r.from.username)}`}>{r.from.displayName}</a>
-                  {r.message && <span className="dim">: {r.message}</span>}
+                  <a href={`#/u/${encodeURIComponent(r.from.username)}`}><strong>{r.from.displayName}</strong></a>
+                  {r.message && <span className="dim"> — {r.message}</span>}
                 </span>
                 <button className="primary btn-sm" type="button" onClick={() => void accept(r.from.username)}>
                   Accept
@@ -137,26 +142,28 @@ export function PeopleView({ client, go }: { client: NetworkClient; go: (h: stri
               </li>
             ))}
           </ul>
-        </div>
+        </>
       )}
-      <div className="card">
-        <h2>Connections · {data?.connections.length ?? 0}</h2>
-        {data?.connections.length === 0 && (
-          <p className="dim">No connections yet. Browse <a href="#/spaces">AitherSpaces</a> or open a profile to connect.</p>
-        )}
-        <ul className="rows">
+
+      <div className="section-bar">Connections · {data?.connections.length ?? 0}</div>
+      {data?.connections.length === 0 ? (
+        <div className="empty-state">
+          No connections yet. Browse <a href="#/spaces">AitherSpaces</a> or open a profile to connect.
+        </div>
+      ) : (
+        <ul className="list-rows">
           {data?.connections.map(c => (
-            <li key={c.username} className="row between wrap">
+            <li key={c.username} className="list-row row between wrap">
               <span>
                 <a href={`#/u/${encodeURIComponent(c.username)}`}><strong>{c.displayName}</strong></a>
                 {' '}
-                <span className="mono dim">@{c.username}</span>
+                <span className="mono muted">@{c.username}</span>
               </span>
-              <a className="mono small" href={`#/messages?to=${encodeURIComponent(c.username)}`}>Message</a>
+              <a className="small dim" href={`#/messages?to=${encodeURIComponent(c.username)}`}>Message</a>
             </li>
           ))}
         </ul>
-      </div>
+      )}
     </section>
   )
 }

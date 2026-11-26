@@ -65,13 +65,13 @@ export function MessagesView({
   if (!client) {
     return (
       <section className="stack" aria-label="Messages">
-        <div className="card stack-sm">
-          <h2>Direct Messages</h2>
+        <header className="stream-header"><h1>Messages</h1></header>
+        <div className="pane-section stack-sm">
           <p className="dim">
             Direct messages run on AitherRelay and mirror to Discord when bridged, so conversations stay reachable across both.
           </p>
           <div>
-            <button className="primary" type="button" onClick={signIn}>Sign in with Aitherium</button>
+            <button className="primary btn-sm" type="button" onClick={signIn}>Sign in with Aitherium</button>
           </div>
         </div>
       </section>
@@ -80,70 +80,65 @@ export function MessagesView({
 
   return (
     <section className="stack" aria-label="Messages">
-      <div className="card stack-sm">
-        <div className="row between wrap">
-          <h2>Direct Messages</h2>
-          <div className="row">
-            <button className="ghost btn-sm" type="button" onClick={() => void load()}>Refresh</button>
-            <a className="link btn-sm" href="https://relay.aitherium.com/" target="_blank" rel="noopener noreferrer">
-              Open Relay ↗
-            </a>
-          </div>
+      <header className="stream-header">
+        <h1>Messages</h1>
+        <div className="row">
+          <button className="linkish xs" type="button" onClick={() => void load()}>Refresh</button>
+          <a className="small dim" href="https://relay.aitherium.com/" target="_blank" rel="noopener noreferrer">
+            Relay ↗
+          </a>
         </div>
-        <p className="dim small">
-          Live AitherRelay direct messages (auto-refreshes every 10s), mirrored with connected Discord accounts.
-        </p>
+      </header>
 
-        <form className="stack-sm" onSubmit={send} aria-label="Send a direct message">
-          <div className="row wrap">
-            <input
-              aria-label="Recipient handle"
-              placeholder="@handle"
-              value={to}
-              onChange={e => setTo(e.target.value)}
-            />
-          </div>
-          <textarea
-            aria-label="Message body"
-            rows={2}
-            placeholder="Write a direct message…"
-            value={text}
-            onChange={e => setText(e.target.value)}
+      <form className="pane-section stack-sm" onSubmit={send} aria-label="Send a direct message">
+        <div className="row wrap">
+          <input
+            aria-label="Recipient handle"
+            placeholder="@handle"
+            value={to}
+            onChange={e => setTo(e.target.value)}
           />
-          <div className="row between wrap">
-            <button className="primary" type="submit" disabled={busy || !cleanHandle(to) || !text.trim()}>
-              {busy ? 'Sending…' : 'Send DM'}
-            </button>
-            {status && <span className="dim small" role="status">{status}</span>}
-          </div>
-        </form>
-      </div>
+        </div>
+        <textarea
+          aria-label="Message body"
+          rows={2}
+          placeholder="Write a direct message…"
+          value={text}
+          onChange={e => setText(e.target.value)}
+        />
+        <div className="row between wrap">
+          <button className="primary btn-sm" type="submit" disabled={busy || !cleanHandle(to) || !text.trim()}>
+            {busy ? 'Sending…' : 'Send DM'}
+          </button>
+          {status && <span className="dim xs" role="status">{status}</span>}
+        </div>
+      </form>
 
-      {err && <p className="err" role="alert">{err}</p>}
+      {err && <p className="notice-row err" role="alert">{err}</p>}
 
-      <div className="card stack-sm">
-        <h2>Recent DMs</h2>
-        {dms === null && <p className="dim">Loading direct messages…</p>}
-        {dms?.length === 0 && (
-          <p className="dim small">No recent direct messages in this inbox yet. Send one above or open Relay.</p>
-        )}
-        <ul className="rows">
-          {dms?.map(m => {
+      <div className="section-bar">Recent DMs</div>
+      {dms === null && <div className="empty-state">Loading direct messages…</div>}
+      {dms?.length === 0 && (
+        <div className="empty-state">No recent direct messages in this inbox yet.</div>
+      )}
+      {dms && dms.length > 0 && (
+        <ul className="list-rows">
+          {dms.map(m => {
             const peer = m.from === me ? m.to : m.from
             return (
-              <li key={m.id} className="stack-xs">
+              <li key={m.id} className="list-row stack-xs">
                 <div className="row between wrap">
-                  <span>
-                    <a href={`#/u/${encodeURIComponent(m.from)}`}>@{m.from}</a>
-                    <span className="dim"> → </span>
-                    <a href={`#/u/${encodeURIComponent(m.to)}`}>@{m.to}</a>
+                  <span className="small">
+                    <a className="post-author-name" href={`#/u/${encodeURIComponent(m.from)}`}>@{m.from}</a>
+                    <span className="muted"> → </span>
+                    <a className="post-author-name" href={`#/u/${encodeURIComponent(m.to)}`}>@{m.to}</a>
                   </span>
-                  <span className="mono dim small">
+                  <span className="xs muted">
                     {ago(m.timestamp)}
                     {peer && (
                       <>
                         {' · '}
-                        <button className="linkish" type="button" onClick={() => setTo(peer)}>Reply</button>
+                        <button className="linkish xs" type="button" onClick={() => setTo(peer)}>Reply</button>
                       </>
                     )}
                   </span>
@@ -153,7 +148,7 @@ export function MessagesView({
             )
           })}
         </ul>
-      </div>
+      )}
     </section>
   )
 }

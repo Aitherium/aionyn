@@ -1,4 +1,4 @@
-// The Wesyn copilot panel: in-tab Bonsai, Wesyn tools, a click for anything outward.
+// The in-tab Bonsai copilot panel: Aionyn tools, a click for anything outward.
 // AGPL-3.0-only.
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import type { WorldClient, WorldDetail } from '../api/types'
@@ -77,7 +77,6 @@ export function Copilot({ world, client, me }: { world: WorldDetail; client: Wor
     setState('ready')
   }
 
-  // The ONLY place a copilot draft leaves the page: the member's own click.
   const send = async (d: Draft) => {
     const r = d.kind === 'reply' ? await client.reply(world.slug, d.target, d.text) : await client.message(d.target, d.text)
     setDrafts(x => x.filter(y => y.id !== d.id))
@@ -86,48 +85,59 @@ export function Copilot({ world, client, me }: { world: WorldDetail; client: Wor
 
   const mb = MODELS.find(m => m.id === model)?.mb
   return (
-    <aside className="card copilot" aria-label="Copilot">
-      <h2>Copilot <span className="mono dim">in-tab Bonsai</span></h2>
-      <p className="dim">Runs on your GPU inside this tab, as you (@{me || 'you'}). It reads {world.slug ? 'this world' : 'a world when you open one'} and
-        the OSINT board, and it can only <b>draft</b> a reply or a message: nothing is sent until you click.</p>
-      {gpu === false && <p className="err">This browser has no usable WebGPU, so the in-tab copilot cannot run here.</p>}
+    <aside className="pane-section stack-sm copilot" aria-label="Copilot">
+      <h2>Copilot · in-tab Bonsai</h2>
+      <p className="dim small">
+        Runs on your GPU inside this tab, as you (@{me || 'you'}). It reads {world.slug ? 'this world' : 'a world when you open one'} and
+        the OSINT board, and can only <strong>draft</strong> a reply or message: nothing is sent until you click.
+      </p>
+      {gpu === false && <p className="err small">This browser has no usable WebGPU, so the in-tab copilot cannot run here.</p>}
       {gpu && state !== 'ready' && state !== 'busy' && (
-        <div className="row">
+        <div className="row wrap">
           <select aria-label="Model" value={model} onChange={e => setModel(e.target.value as ModelId)} disabled={state === 'loading'}>
             {MODELS.map(m => <option key={m.id} value={m.id}>{m.label} ({m.mb} MB)</option>)}
           </select>
-          <button className="primary" onClick={load} disabled={state === 'loading'}>
-            {state === 'loading' ? `Loading ${pct}%` : `Load on my GPU (${mb} MB, once)`}
+          <button className="primary btn-sm" type="button" onClick={load} disabled={state === 'loading'}>
+            {state === 'loading' ? `Loading ${pct}%` : `Load on my GPU (${mb} MB)`}
           </button>
         </div>
       )}
-      {err && <p className="err">{err}</p>}
-      <ol className="turns">{turns.map(t => (
-        <li key={t.id}>
-          <p><b>you</b>: {t.user}</p>
-          {t.steps.map((s, j) => (
-            <p key={j} className="mono dim step">tool {s.tool} {Object.keys(s.args).length ? JSON.stringify(s.args) : ''} → {s.result.slice(0, 140)}</p>
+      {err && <p className="err small">{err}</p>}
+      {turns.length > 0 && (
+        <ol className="turns">
+          {turns.map(t => (
+            <li key={t.id}>
+              <p className="small"><strong>you</strong>: {t.user}</p>
+              {t.steps.map((s, j) => (
+                <p key={j} className="mono muted step">tool {s.tool} {Object.keys(s.args).length ? JSON.stringify(s.args) : ''} → {s.result.slice(0, 140)}</p>
+              ))}
+              {t.reply && <p className="answer small">{t.reply}</p>}
+              {t.error && <p className="err small">{t.error}</p>}
+              <p className="mono xs muted">{t.reply || t.error ? `${t.by}, on your GPU` : 'thinking…'}</p>
+            </li>
           ))}
-          {t.reply && <p className="answer">{t.reply}</p>}
-          {t.error && <p className="err">{t.error}</p>}
-          <p className="mono dim">{t.reply || t.error ? `${t.by}, on your GPU` : 'thinking…'}</p>
-        </li>
-      ))}</ol>
+        </ol>
+      )}
       {drafts.map(d => (
-        <div key={d.id} className="card draft" role="group" aria-label={`Draft: ${d.label}`}>
-          <p className="mono dim">Draft · {d.label}</p>
-          <p>{d.text}</p>
+        <div key={d.id} className="draft stack-xs" role="group" aria-label={`Draft: ${d.label}`}>
+          <p className="mono xs muted">Draft · {d.label}</p>
+          <p className="small">{d.text}</p>
           <div className="row">
-            <button className="primary" onClick={() => send(d)}>{d.kind === 'message' ? 'Send' : 'Post'}</button>
-            <button className="ghost" onClick={() => setDrafts(x => x.filter(y => y.id !== d.id))}>Discard</button>
+            <button className="primary btn-sm" type="button" onClick={() => send(d)}>{d.kind === 'message' ? 'Send' : 'Post'}</button>
+            <button className="ghost btn-sm" type="button" onClick={() => setDrafts(x => x.filter(y => y.id !== d.id))}>Discard</button>
           </div>
         </div>
       ))}
-      {done.map((m, i) => <p key={i} className="ok" role="status">{m}</p>)}
+      {done.map((m, i) => <p key={i} className="ok small" role="status">{m}</p>)}
       <form className="row" onSubmit={ask}>
-        <input aria-label="Ask the copilot" placeholder={state === 'ready' ? 'Ask about this world…' : 'Load the copilot first'}
-          value={q} onChange={e => setQ(e.target.value)} disabled={state !== 'ready'} />
-        <button className="primary" type="submit" disabled={state !== 'ready' || !q.trim()}>Ask</button>
+        <input
+          aria-label="Ask the copilot"
+          placeholder={state === 'ready' ? 'Ask about this world…' : 'Load the copilot first'}
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          disabled={state !== 'ready'}
+        />
+        <button className="primary btn-sm" type="submit" disabled={state !== 'ready' || !q.trim()}>Ask</button>
       </form>
     </aside>
   )

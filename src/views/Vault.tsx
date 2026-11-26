@@ -43,7 +43,7 @@ export const STATIC_CATALOG_OVERVIEW: ReadonlyArray<{
   {
     key: 'openaw',
     name: 'openAW',
-    line: 'Open-source project hub, search, Deep Research, and installable apps — 1-click Aionyn OIDC SSO.',
+    line: 'Open-source project hub, search, Deep Research, and installable apps via Aionyn OIDC SSO.',
     url: OPENAW_SSO_URL,
   },
   {
@@ -61,7 +61,7 @@ export const STATIC_CATALOG_OVERVIEW: ReadonlyArray<{
   {
     key: 'spaces',
     name: 'Aither Spaces',
-    line: 'Your public page, shown on Wesyn and in Discord.',
+    line: 'Your public page, shown on Aionyn and in Discord.',
     url: 'https://aitherium.com/spaces/',
   },
   {
@@ -153,52 +153,58 @@ export function VaultView({ idpBase, token, signIn }: VaultProps) {
 
   return (
     <section className="stack" aria-label="Vault and service catalog">
-      <div className="card">
-        <h2>Aionyn vault &amp; service catalog</h2>
-        <p>
-          One Aitherium identity unlocks every Aitherium ecosystem service with silent OIDC sign-in.
-          Activate only what you want; deactivate any time to revoke every token minted for that service immediately.
-        </p>
+      <header className="stream-header">
+        <h1>Aionyn vault</h1>
         {!token && (
-          <p style={{ marginTop: 12 }}>
-            <button className="primary" onClick={signIn}>Sign in with Aitherium</button>
-            <span className="dim" style={{ marginLeft: 10 }}>to view live activation status and toggle grants.</span>
-          </p>
+          <button className="primary btn-sm" type="button" onClick={signIn}>
+            Sign in
+          </button>
         )}
+      </header>
+
+      <div className="pane-section">
+        <p className="dim small">
+          One Aitherium identity unlocks every ecosystem service with silent OIDC sign-in.
+          Activate only what you want; deactivate any time to revoke tokens immediately.
+        </p>
       </div>
 
-      {err && <p className="err" role="alert">{err}</p>}
-      {notice && <p className="ok" role="status">{notice}</p>}
-      {loading && <p className="dim">Loading catalog from Aitherium Identity…</p>}
+      {err && <p className="notice-row err" role="alert">{err}</p>}
+      {notice && <p className="notice-row ok" role="status">{notice}</p>}
+      {loading && <div className="empty-state">Loading catalog from Aitherium Identity…</div>}
 
       {token && catalog ? (
         <>
-          <h2>Services</h2>
-          <ul className="grid">
+          <div className="section-bar">Services</div>
+          <ul className="list-rows">
             {catalog.services.map(svc => {
               const launchUrl = svc.key === 'openaw' && svc.status === 'active' ? OPENAW_SSO_URL : svc.url
-              const launchLabel = svc.key === 'openaw' && svc.status === 'active' ? 'Open with SSO ↗' : 'Open'
+              const launchLabel = svc.key === 'openaw' && svc.status === 'active' ? 'Open with SSO ↗' : 'Open ↗'
               return (
-                <li key={svc.key} className="card stack">
-                  <div>
-                    <strong>{svc.name}</strong>
-                    <span className={`tag${svc.status === 'active' ? ' ok' : ''}`}>{svc.status}</span>
+                <li key={svc.key} className="list-row stack-xs">
+                  <div className="row between wrap">
+                    <div className="row">
+                      <strong className="thread-link">{svc.name}</strong>
+                      <span className={svc.status === 'active' ? 'status-dot on' : 'status-dot'} aria-hidden="true" />
+                      <span className="xs muted">{svc.status}</span>
+                    </div>
+                    <div className="row">
+                      {launchUrl && (
+                        <a className="small dim" href={launchUrl} rel="noopener noreferrer">{launchLabel}</a>
+                      )}
+                      {svc.action && (
+                        <button
+                          className={svc.action === 'Activate' ? 'primary btn-sm' : 'ghost btn-sm'}
+                          type="button"
+                          disabled={busyKey === svc.key}
+                          onClick={() => void toggleService(svc)}
+                        >
+                          {busyKey === svc.key ? 'Working…' : svc.action}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <p className="dim">{svc.line}</p>
-                  <div className="row wrap">
-                    {launchUrl && (
-                      <a className="link" href={launchUrl} rel="noopener noreferrer">{launchLabel}</a>
-                    )}
-                    {svc.action && (
-                      <button
-                        className={svc.action === 'Activate' ? 'primary' : 'ghost'}
-                        disabled={busyKey === svc.key}
-                        onClick={() => void toggleService(svc)}
-                      >
-                        {busyKey === svc.key ? 'Working…' : svc.action}
-                      </button>
-                    )}
-                  </div>
+                  <p className="dim small">{svc.line}</p>
                 </li>
               )
             })}
@@ -206,19 +212,17 @@ export function VaultView({ idpBase, token, signIn }: VaultProps) {
 
           {catalog.bundles.length > 0 && (
             <>
-              <h2>Bundles</h2>
-              <p className="dim">
-                Bundles activate multiple services in one hardware-signed step using an enrolled Aither device key.
-              </p>
-              <ul className="grid">
+              <div className="section-bar">Bundles</div>
+              <ul className="list-rows">
                 {catalog.bundles.map(b => (
-                  <li key={b.key} className="card stack">
-                    <div>
-                      <strong>{b.name}</strong>
-                      <span className={`tag${b.status === 'active' ? ' ok' : ''}`}>{b.status}</span>
+                  <li key={b.key} className="list-row stack-xs">
+                    <div className="row">
+                      <strong className="thread-link">{b.name}</strong>
+                      <span className={b.status === 'active' ? 'status-dot on' : 'status-dot'} aria-hidden="true" />
+                      <span className="xs muted">{b.status}</span>
                     </div>
-                    <p className="dim">{b.line}</p>
-                    <p className="fine">Includes: {b.services.join(', ')}</p>
+                    <p className="dim small">{b.line}</p>
+                    <p className="xs muted">Includes: {b.services.join(' · ')}</p>
                   </li>
                 ))}
               </ul>
@@ -227,18 +231,15 @@ export function VaultView({ idpBase, token, signIn }: VaultProps) {
         </>
       ) : (
         <>
-          <h2>Ecosystem services (sign in to activate)</h2>
-          <ul className="grid">
+          <div className="section-bar">Ecosystem Services</div>
+          <ul className="list-rows">
             {STATIC_CATALOG_OVERVIEW.map(svc => (
-              <li key={svc.key} className="card stack">
-                <div>
-                  <strong>{svc.name}</strong>
-                  <span className="tag">sign in</span>
+              <li key={svc.key} className="list-row stack-xs">
+                <div className="row between wrap">
+                  <strong className="thread-link">{svc.name}</strong>
+                  <a className="small dim" href={svc.url} rel="noopener noreferrer">Visit ↗</a>
                 </div>
-                <p className="dim">{svc.line}</p>
-                <div className="row wrap">
-                  <a className="link" href={svc.url} rel="noopener noreferrer">Visit</a>
-                </div>
+                <p className="dim small">{svc.line}</p>
               </li>
             ))}
           </ul>

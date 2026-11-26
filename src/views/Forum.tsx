@@ -46,52 +46,88 @@ export function Forum({ client, slug, refresh }: { client: WorldClient; slug: st
   useEffect(() => { if (open && refresh) openThread(open.thread.id) }, [refresh]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const row = (t: ForumThread) => (
-    <li key={t.id}><button className="linkish" onClick={() => openThread(t.id)}>{t.pinned ? '[pinned] ' : ''}{t.title}</button>
-      <span className="mono dim"> @{t.author} · {t.replies} repl{t.replies === 1 ? 'y' : 'ies'} · {ago(t.updatedAt)}</span></li>
+    <li key={t.id} className="list-row stack-xs">
+      <button className="linkish thread-link" type="button" onClick={() => openThread(t.id)}>
+        {t.pinned ? '[pinned] ' : ''}{t.title}
+      </button>
+      <span className="xs muted tnum">@{t.author} · {t.replies} repl{t.replies === 1 ? 'y' : 'ies'} · {ago(t.updatedAt)}</span>
+    </li>
   )
+
   return (
-    <section className="card" aria-label="Forum">
-      <h2>Forum</h2>
-      {err && <p className="err">{err}</p>}
-      <nav className="row" aria-label="Boards">{boards.map(b => (
-        <button key={b.id} className={b.id === board ? 'primary' : 'ghost'} aria-pressed={b.id === board}
-          onClick={() => { setBoard(b.id); setOpen(null); setHits(null) }}>{b.name} · {b.threadCount}</button>
-      ))}</nav>
-      <form className="row" onSubmit={search}>
-        <input aria-label="Search threads" placeholder="Search threads" value={q} onChange={e => setQ(e.target.value)} />
-        <button className="ghost" type="submit" disabled={!q.trim()}>Search</button>
-      </form>
-      {hits && <div><p className="dim">{hits.length} match{hits.length === 1 ? '' : 'es'} for "{q}"</p><ul className="rows">{hits.map(row)}</ul></div>}
+    <section className="stack" aria-label="Forum">
+      {err && <p className="notice-row err">{err}</p>}
+      {boards.length > 0 && (
+        <nav className="tab-bar sub" aria-label="Boards">
+          {boards.map(b => (
+            <button
+              key={b.id}
+              type="button"
+              className={b.id === board ? 'tab-btn active' : 'tab-btn'}
+              aria-pressed={b.id === board}
+              onClick={() => { setBoard(b.id); setOpen(null); setHits(null) }}
+            >
+              {b.name} ({b.threadCount})
+            </button>
+          ))}
+        </nav>
+      )}
+
+      <div className="pane-section">
+        <form className="row" onSubmit={search}>
+          <input aria-label="Search threads" placeholder="Search threads" value={q} onChange={e => setQ(e.target.value)} />
+          <button className="ghost btn-sm" type="submit" disabled={!q.trim()}>Search</button>
+        </form>
+      </div>
+
+      {hits && (
+        <>
+          <div className="section-bar">{hits.length} match{hits.length === 1 ? '' : 'es'} for &ldquo;{q}&rdquo;</div>
+          <ul className="list-rows">{hits.map(row)}</ul>
+        </>
+      )}
+
       {open ? (
-        <article aria-label={`Thread: ${open.thread.title}`}>
-          <button className="linkish" onClick={() => setOpen(null)}>← all threads</button>
-          <h3>{open.thread.title}</h3>
-          <ol className="rows">{open.posts.map(p => (
-            <li key={p.id}><a href={`#/u/${p.author}`}>@{p.author}</a>{p.agent ? ' (agent)' : ''}
-              <span className="mono dim"> {ago(p.createdAt)}</span><p>{p.body}</p></li>
-          ))}</ol>
+        <article className="stack" aria-label={`Thread: ${open.thread.title}`}>
+          <div className="pane-section stack-xs">
+            <button className="linkish small" type="button" onClick={() => setOpen(null)}>← All threads</button>
+            <h3>{open.thread.title}</h3>
+          </div>
+          <ol className="list-rows">
+            {open.posts.map(p => (
+              <li key={p.id} className="list-row stack-xs">
+                <div className="xs muted">
+                  <a className="post-author-name" href={`#/u/${p.author}`}>@{p.author}</a>
+                  {p.agent ? ' · agent' : ''}
+                  <span> · {ago(p.createdAt)}</span>
+                </div>
+                <p>{p.body}</p>
+              </li>
+            ))}
+          </ol>
           {!open.thread.locked && (
-            <form className="stack" onSubmit={send}>
+            <form className="pane-section stack-sm" onSubmit={send}>
               <textarea aria-label="Your reply" rows={3} value={reply} onChange={e => setReply(e.target.value)} />
-              <button className="primary" type="submit" disabled={!reply.trim()}>Post reply</button>
+              <div><button className="primary btn-sm" type="submit" disabled={!reply.trim()}>Post reply</button></div>
             </form>
           )}
         </article>
       ) : (
         <>
-          {threads === null && <p className="dim">Loading…</p>}
-          {threads?.length === 0 && <p className="dim">No threads on this board yet.</p>}
-          <ul className="rows">{threads?.map(row)}</ul>
+          {threads === null && <div className="empty-state">Loading…</div>}
+          {threads?.length === 0 && <div className="empty-state">No threads on this board yet.</div>}
+          {threads && threads.length > 0 && <ul className="list-rows">{threads.map(row)}</ul>}
           {board && (
-            <form className="stack" onSubmit={start} aria-label="Open a thread">
-              <input aria-label="Thread title" placeholder="Open a thread: title" maxLength={200} value={title} onChange={e => setTitle(e.target.value)} />
+            <form className="pane-section stack-sm" onSubmit={start} aria-label="Open a thread">
+              <h2>Open a thread</h2>
+              <input aria-label="Thread title" placeholder="Title" maxLength={200} value={title} onChange={e => setTitle(e.target.value)} />
               <textarea aria-label="Thread text" rows={3} placeholder="What do you want to say?" value={text} onChange={e => setText(e.target.value)} />
-              <button className="primary" type="submit" disabled={!title.trim() || !text.trim()}>Open thread</button>
+              <div><button className="primary btn-sm" type="submit" disabled={!title.trim() || !text.trim()}>Open thread</button></div>
             </form>
           )}
         </>
       )}
-      {msg && <p className="dim" role="status">{msg}</p>}
+      {msg && <p className="notice-row dim" role="status">{msg}</p>}
     </section>
   )
 }

@@ -49,7 +49,7 @@ export function jobsLdGraph(jobs: Job[]): string {
 }
 
 export function JobsView({ client }: { client: NetworkClient }) {
-  // Live jobs have no backend yet. Wesyn never shows fictional jobs (owner, 2026-11-14).
+  // Live jobs have no backend yet. Aionyn never shows fictional jobs (owner, 2026-11-14).
   void client
   const jobs = useMemo<Job[]>(() => [], [])
   useEffect(() => {
@@ -69,18 +69,31 @@ export function JobsView({ client }: { client: NetworkClient }) {
   }
   return (
     <section className="stack" aria-label="Jobs">
-      <p className="dim">Jobs posted in your worlds. Each one is published as schema.org JobPosting data, so search engines and other boards can list it. You apply on the poster's own link.</p>
-      {jobs.length === 0 && <p className="dim">No jobs posted in your worlds yet. Paid work in Occupy SaaS is on its bounty board in Discord.</p>}
+      <header className="stream-header"><h1>Jobs</h1></header>
+      <div className="pane-section">
+        <p className="dim small">
+          Jobs posted in your worlds. Each one is published as schema.org JobPosting data so search engines and other boards can list it.
+        </p>
+      </div>
+      {jobs.length === 0 && (
+        <div className="empty-state">
+          No jobs posted in your worlds yet. Paid work in Occupy SaaS is on its bounty board in Discord.
+        </div>
+      )}
       {jobs.map(j => (
-        <article key={j.id} className="card">
+        <article key={j.id} className="pane-section stack-xs">
           <h2>{j.world}</h2>
-          <p><b>{j.title}</b> · {j.org}</p>
-          <p className="mono dim">{j.employmentType.replace('_', ' ').toLowerCase()} · {j.remote ? 'remote' : j.locality} · posted {j.datePosted}</p>
-          <p>{j.description}</p>
-          <a className="link" href={j.applyUrl} rel="noopener noreferrer">Apply on the poster's site</a>
+          <p><strong>{j.title}</strong> · {j.org}</p>
+          <p className="mono xs muted">{j.employmentType.replace('_', ' ').toLowerCase()} · {j.remote ? 'remote' : j.locality} · posted {j.datePosted}</p>
+          <p className="small">{j.description}</p>
+          <a className="small" href={j.applyUrl} rel="noopener noreferrer">Apply on the poster&apos;s site ↗</a>
         </article>
       ))}
-      {jobs.length > 0 && <button onClick={download}>Download JSON-LD</button>}
+      {jobs.length > 0 && (
+        <div className="pane-section">
+          <button className="ghost btn-sm" type="button" onClick={download}>Download JSON-LD</button>
+        </div>
+      )}
     </section>
   )
 }
