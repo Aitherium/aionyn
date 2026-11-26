@@ -1,16 +1,29 @@
-// The shell: mode banner, navigation, sign-in, hash routes. AGPL-3.0-only.
-import { useEffect, useMemo, useState } from 'react'
+// The 3-column Aionyn social shell: navigation, public discovery, sign-in, hash routes.
+// AGPL-3.0-only.
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { LiveClient } from './api/live'
+import {
+  OPENAW_SSO_URL,
+  fetchAitherNetPulse,
+  fetchPublicWorlds,
+  type AitherNetPulse,
+  type PublicWorld,
+} from './api/public'
 import type { NetworkClient, Viewer } from './api/types'
 import { DEFAULT_OIDC, authorizeUrl, handleCallback, readToken, signOut } from './auth/oidc'
-import { FeedView, MessagesView, PeopleView } from './views/Lists'
-import { WorldsView } from './views/Worlds'
-import { WorldView } from './views/World'
-import { ProfileView } from './views/Profile'
+import { LeftRail, RightRail } from './components/ShellRails'
+import { ForumsView } from './views/Forums'
 import { ImportView } from './views/Import'
 import { JobsView } from './views/Jobs'
-import { WelcomeView } from './views/Welcome'
+import { FeedView, PeopleView } from './views/Lists'
+import { MessagesView } from './views/Messages'
+import { NetworkView } from './views/Network'
+import { ProfileView } from './views/Profile'
+import { SpacesView } from './views/Spaces'
 import { VaultView } from './views/Vault'
+import { WelcomeView } from './views/Welcome'
+import { WorldView } from './views/World'
+import { WorldsView } from './views/Worlds'
 
 // Build-time overrides exist ONLY for a local preview (a loopback OIDC client and a dev
 // proxy); the published build uses these defaults.
@@ -31,20 +44,15 @@ export function legacyRoute(hash: string): string | null {
 }
 
 /** The sibling domains across the Aitherium ecosystem (live doors only). */
-const FAMILY_SITES: ReadonlyArray<readonly [string, string]> = [
+export const FAMILY_SITES: ReadonlyArray<readonly [string, string]> = [
   ['aitherium.com', 'https://aitherium.com/'],
   ['aitherium.org', 'https://aitherium.org/'],
-  ['openaw.org', 'https://www.openaw.org/'],
+  ['openaw.org', OPENAW_SSO_URL],
   ['wesyn.org', 'https://wesyn.org/'],
   ['eusyra studio', 'https://eusyra.aitherium.com/creators'],
+  ['shop', 'https://shop.aitherium.com/packs'],
   ['awpack', 'https://aitherium.github.io/awpack/'],
 ]
-
-const KNOWN = new Set(['/', '/vault', '/people', '/worlds', '/planets', '/messages', '/jobs', '/import'])
-
-const TABS = [
-  ['#/', 'feed'], ['#/vault', 'vault'], ['#/people', 'people'], ['#/worlds', 'worlds'], ['#/messages', 'messages'], ['#/jobs', 'jobs'], ['#/import', 'import'],
-] as const
 
 function useHash(): [string, (h: string) => void] {
   const [hash, setHash] = useState(window.location.hash || '#/')
@@ -66,13 +74,15 @@ export default function App() {
   const [token, setToken] = useState<string | null>(() => readToken(sessionStorage))
   const [viewer, setViewer] = useState<Viewer | null>(null)
   const [authErr, setAuthErr] = useState('')
+  const [pulse, setPulse] = useState<AitherNetPulse | null>(null)
+  const [pulseLoading, setPulseLoading] = useState(true)
+  const [publicWorlds, setPublicWorlds] = useState<PublicWorld[]>([])
+  const [worldsLoading, setWorldsLoading] = useState(true)
 
   // Finish a sign-in round trip (the IdP calls back to the app root with ?code&state).
   useEffect(() => {
     const search = window.location.search
     if (!search) return
-    // Take the code out of the URL first, so a second run of this effect (React
-    // StrictMode runs it twice in development) cannot redeem a state already spent.
     window.history.replaceState(null, '', window.location.pathname + window.location.hash)
     handleCallback(OIDC_API, sessionStorage, search).then(r => {
       if (r.kind === 'none') return
@@ -82,7 +92,7 @@ export default function App() {
     })
   }, [])
 
-  // Signed out = no client. Wesyn never shows sample people (owner, 2026-11-14).
+  // Signed out = no client. Aionyn never shows sample people (owner, 2026-11-14).
   const client: NetworkClient | null = useMemo(
     () => (token ? new LiveClient({ apiBase: API_BASE, userinfoUrl: USERINFO, token }) : null),
     [token],
@@ -98,54 +108,153 @@ export default function App() {
     return () => { live = false }
   }, [client])
 
+  const loadPulse = useCallback(() => {
+    setPulseLoading(true)
+    fetchAitherNetPulse(API_BASE)
+      .then(r => setPulse(r.data))
+      .finally(() => setPulseLoading(false))
+  }, [])
+
+  useEffect(() => {
+    loadPulse()
+    let live = true
+    setWorldsLoading(true)
+    fetchPublicWorlds(API_BASE)
+      .then(r => { if (live) setPublicWorlds(r.data) })
+      .finally(() => { if (live) setWorldsLoading(false) })
+    return () => { live = false }
+  }, [loadPulse])
+
   const signIn = async () => { window.location.href = await authorizeUrl(OIDC, sessionStorage, hash) }
   const leave = () => { signOut(sessionStorage); setToken(null); setAuthErr('') }
 
-  const route = hash.replace(/^#/, '') || '/'
+  const rawRoute = hash.replace(/^#/, '') || '/'
+  const [route, queryStr] = rawRoute.split('?')
+  const params = new URLSearchParams(queryStr || '')
   const user = route.startsWith('/u/') ? decodeURIComponent(route.slice(3)) : ''
-  const world = route.startsWith('/w/') ? decodeURIComponent(route.slice(3)) : ''
+  const world = route.startsWith('/worlds/')
+    ? decodeURIComponent(route.slice(8))
+    : route.startsWith('/w/')
+      ? decodeURIComponent(route.slice(3))
+      : ''
+  const matchedPublicWorld = world ? publicWorlds.find(w => w.slug === world) : undefined
+
+  const renderCenter = () => {
+    if (route === '/vault') return <VaultView idpBase={OIDC_API.issuer} token={token} signIn={signIn} />
+    if (route === '/network') return <NetworkView pulse={pulse} loading={pulseLoading} onRefresh={loadPulse} />
+    if (route === '/forums') return <ForumsView client={client} apiBase={API_BASE} signIn={signIn} />
+    if (route === '/spaces') {
+      return <SpacesView apiBase={API_BASE} go={go} me={viewer?.username || ''} signedIn={Boolean(client)} signIn={signIn} />
+    }
+    if (route === '/worlds') {
+      return <WorldsView client={client} go={go} publicWorlds={publicWorlds} signIn={signIn} />
+    }
+    if (route === '/messages') {
+      return <MessagesView client={client} initialTo={params.get('to') || ''} me={viewer?.username || ''} signIn={signIn} />
+    }
+    if (route === '/import') return <ImportView />
+
+    if (world) {
+      if (!client) {
+        return (
+          <section className="card stack-sm" aria-label="Sign in required for World">
+            <h2>{matchedPublicWorld?.name || world}</h2>
+            <p className="dim">Sign in with Aitherium to open this World&apos;s Relay rooms, live chat, and forum.</p>
+            <div className="row wrap">
+              <button className="primary" type="button" onClick={signIn}>Sign in with Aitherium</button>
+              {matchedPublicWorld?.inviteUrl && (
+                <a className="link" href={matchedPublicWorld.inviteUrl} target="_blank" rel="noopener noreferrer">
+                  Join on Discord ↗
+                </a>
+              )}
+            </div>
+          </section>
+        )
+      }
+      return <WorldView client={client} slug={world} me={viewer?.username || ''} publicWorld={matchedPublicWorld} />
+    }
+
+    if (user) {
+      if (!client) {
+        return (
+          <section className="card stack-sm" aria-label="Sign in to view full profile">
+            <h2>@{user}</h2>
+            <p className="dim">
+              Sign in with Aitherium to view @{user}&apos;s standing, Space blocks, and connection status.
+            </p>
+            <div className="row wrap">
+              <button className="primary" type="button" onClick={signIn}>Sign in with Aitherium</button>
+              <a
+                className="link"
+                href={`https://aitherium.com/spaces/${encodeURIComponent(user)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open public Space on aitherium.com ↗
+              </a>
+            </div>
+          </section>
+        )
+      }
+      return <ProfileView client={client} username={user} go={go} me={viewer?.username || ''} />
+    }
+
+    if (route === '/people') {
+      return client
+        ? <PeopleView client={client} go={go} />
+        : (
+          <section className="card stack-sm">
+            <h2>Connections</h2>
+            <p className="dim">Sign in with Aitherium to view your connections and requests, or browse public <a href="#/spaces">AitherSpaces</a>.</p>
+            <div><button className="primary" type="button" onClick={signIn}>Sign in with Aitherium</button></div>
+          </section>
+        )
+    }
+
+    if (route === '/jobs') {
+      return client
+        ? <JobsView client={client} />
+        : (
+          <section className="card stack-sm">
+            <h2>Jobs</h2>
+            <p className="dim">Sign in with Aitherium to see jobs posted in your Worlds. Paid work in Occupy SaaS runs on its Discord bounty board.</p>
+            <div><button className="primary" type="button" onClick={signIn}>Sign in with Aitherium</button></div>
+          </section>
+        )
+    }
+
+    if (route === '/') {
+      return client
+        ? <FeedView client={client} apiBase={API_BASE} />
+        : <WelcomeView signIn={signIn} apiBase={API_BASE} publicWorlds={publicWorlds} />
+    }
+
+    return <p className="err card" role="alert">No such page. <a href="#/">Back to the feed</a></p>
+  }
+
   return (
-    <div className={world ? "shell wide" : "shell"}>
-      <header className="top">
-        <a className="brand" href="#/">aionyn<span className="beta">beta</span></a>
-        <nav aria-label="Sections">
-          {TABS.map(([h, label]) => (
-            <a key={h} href={h} aria-current={hash === h ? 'page' : undefined}>{label}</a>
-          ))}
-          {viewer && <a href={`#/u/${viewer.username}`} aria-current={user === viewer.username ? 'page' : undefined}>you</a>}
-        </nav>
-        {client
-          ? <button className="ghost" onClick={leave}>Sign out{viewer ? ` @${viewer.username}` : ''}</button>
-          : <button className="primary" onClick={signIn}>Sign in with Aitherium</button>}
-      </header>
-      {authErr && <p className="err" role="alert">{authErr}</p>}
-      <main>
-        {route === '/vault' ? <VaultView idpBase={OIDC_API.issuer} token={token} signIn={signIn} />
-          : !client && world ? <p className="dim">Sign in with Aitherium to open this world.</p>
-          : !client && route !== '/import' && !(route !== '/' && !KNOWN.has(route) && !user) ? <WelcomeView signIn={signIn} />
-          : user && client ? <ProfileView client={client} username={user} go={go} me={viewer?.username || ''} />
-          : route === '/import' ? <ImportView />
-          : !client ? <p className="err" role="alert">No such page. <a href="#/">Back to the start</a></p>
-          : world ? <WorldView client={client} slug={world} me={viewer?.username || ''} />
-          : route === '/people' ? <PeopleView client={client} go={go} />
-          : route === '/worlds' ? <WorldsView client={client} go={go} />
-          : route === '/messages' ? <MessagesView client={client} />
-          : route === '/jobs' ? <JobsView client={client} />
-          : route === '/' ? <FeedView client={client} />
-          : <p className="err" role="alert">No such page. <a href="#/">Back to the feed</a></p>}
-      </main>
-      <footer className="foot">
-        Powered by <a href="https://aitherium.com/" rel="noopener noreferrer">Aitherium</a> · Open source (AGPL-3.0) · <a href="https://github.com/Aitherium/aionyn">github.com/Aitherium/aionyn</a>
-        <span className="family">
-          {' · ecosystem: '}
-          {FAMILY_SITES.map(([name, href], index) => (
-            <span key={href}>
-              {index > 0 ? ' · ' : null}
-              <a href={href} rel="noopener noreferrer">{name}</a>
+    <div className="app-frame">
+      <div className="shell-grid">
+        <LeftRail route={route} viewer={viewer} signedIn={Boolean(client)} signIn={signIn} signOut={leave} />
+        <main className="center-col">
+          {authErr && <p className="err card" role="alert">{authErr}</p>}
+          {renderCenter()}
+          <footer className="foot">
+            Powered by <a href="https://aitherium.com/" rel="noopener noreferrer">Aitherium</a> · Open source (AGPL-3.0) ·{' '}
+            <a href="https://github.com/Aitherium/aionyn" rel="noopener noreferrer">github.com/Aitherium/aionyn</a>
+            <span className="family">
+              {' · ecosystem: '}
+              {FAMILY_SITES.map(([name, href], index) => (
+                <span key={href}>
+                  {index > 0 ? ' · ' : null}
+                  <a href={href} rel="noopener noreferrer">{name}</a>
+                </span>
+              ))}
             </span>
-          ))}
-        </span>
-      </footer>
+          </footer>
+        </main>
+        <RightRail pulse={pulse} pulseLoading={pulseLoading} worlds={publicWorlds} worldsLoading={worldsLoading} />
+      </div>
     </div>
   )
 }

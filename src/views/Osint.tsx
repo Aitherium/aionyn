@@ -60,8 +60,16 @@ export function Osint({ client, world, onSaved }: { client: WorldClient; world: 
         {admin && <button className="ghost" type="button" onClick={save} disabled={q.trim().length < 2}>Make this the world's topic</button>}
       </form>
       {msg && <p className="dim" role="status">{msg}</p>}
-      {news?.error && <p className="err">News: {news.error}</p>}
-      {tele?.error && <p className="err">Telemetry: {tele.error}</p>}
+      {news?.error && (
+        <p className={/503|unavailable/i.test(news.error) ? 'notice-banner small' : 'err'}>
+          News: {news.error}
+        </p>
+      )}
+      {tele?.error && (
+        <p className={/503|unavailable/i.test(tele.error) ? 'notice-banner small' : 'err'}>
+          Telemetry: {tele.error}
+        </p>
+      )}
       {tele && !tele.error && tele.items.some(i => i.lat !== undefined) && <Map items={tele.items} />}
       {tele && !tele.error && <p className="mono dim">{tele.items.length} telemetry row(s) for "{tele.query}"</p>}
       {news && !news.error && (

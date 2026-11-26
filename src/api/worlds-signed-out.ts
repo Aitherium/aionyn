@@ -25,4 +25,5 @@ export class SignedOutWorlds implements WorldClient {
       license: 'AGPL-3.0', error: SIGN_IN }
   }
   async message() { return NOTHING }
+  async dms() { return [] }
 }

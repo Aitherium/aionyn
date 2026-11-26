@@ -1,6 +1,7 @@
 // Aionyn Vault & Service Catalog: one Aitherium identity, silent OIDC grants, instant revocation.
 // AGPL-3.0-only.
 import { useCallback, useEffect, useState } from 'react'
+import { OPENAW_SSO_URL } from '../api/public'
 
 export interface CatalogService {
   key: string
@@ -42,8 +43,8 @@ export const STATIC_CATALOG_OVERVIEW: ReadonlyArray<{
   {
     key: 'openaw',
     name: 'openAW',
-    line: 'Open-source project hub, search, Deep Research, and installable apps.',
-    url: 'https://www.openaw.org/',
+    line: 'Open-source project hub, search, Deep Research, and installable apps — 1-click Aionyn OIDC SSO.',
+    url: OPENAW_SSO_URL,
   },
   {
     key: 'wesyn',
@@ -174,29 +175,33 @@ export function VaultView({ idpBase, token, signIn }: VaultProps) {
         <>
           <h2>Services</h2>
           <ul className="grid">
-            {catalog.services.map(svc => (
-              <li key={svc.key} className="card stack">
-                <div>
-                  <strong>{svc.name}</strong>
-                  <span className={`tag${svc.status === 'active' ? ' ok' : ''}`}>{svc.status}</span>
-                </div>
-                <p className="dim">{svc.line}</p>
-                <div className="row wrap">
-                  {svc.url && (
-                    <a className="link" href={svc.url} rel="noopener noreferrer">Open</a>
-                  )}
-                  {svc.action && (
-                    <button
-                      className={svc.action === 'Activate' ? 'primary' : 'ghost'}
-                      disabled={busyKey === svc.key}
-                      onClick={() => void toggleService(svc)}
-                    >
-                      {busyKey === svc.key ? 'Working…' : svc.action}
-                    </button>
-                  )}
-                </div>
-              </li>
-            ))}
+            {catalog.services.map(svc => {
+              const launchUrl = svc.key === 'openaw' && svc.status === 'active' ? OPENAW_SSO_URL : svc.url
+              const launchLabel = svc.key === 'openaw' && svc.status === 'active' ? 'Open with SSO ↗' : 'Open'
+              return (
+                <li key={svc.key} className="card stack">
+                  <div>
+                    <strong>{svc.name}</strong>
+                    <span className={`tag${svc.status === 'active' ? ' ok' : ''}`}>{svc.status}</span>
+                  </div>
+                  <p className="dim">{svc.line}</p>
+                  <div className="row wrap">
+                    {launchUrl && (
+                      <a className="link" href={launchUrl} rel="noopener noreferrer">{launchLabel}</a>
+                    )}
+                    {svc.action && (
+                      <button
+                        className={svc.action === 'Activate' ? 'primary' : 'ghost'}
+                        disabled={busyKey === svc.key}
+                        onClick={() => void toggleService(svc)}
+                      >
+                        {busyKey === svc.key ? 'Working…' : svc.action}
+                      </button>
+                    )}
+                  </div>
+                </li>
+              )
+            })}
           </ul>
 
           {catalog.bundles.length > 0 && (
