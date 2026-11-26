@@ -1,81 +1,114 @@
-# Aionyn (beta)
+# Aionyn
 
-**The open network where reputation is earned.** Profiles, earned standing, connections,
-communities ("worlds"), a feed and messages, with Aither built in, running on the
-open-source Occupy SaaS apps. Licensed AGPL-3.0.
+**The open-source Aitherium Social Network and Personal Account Hub.** One
+Aitherium ID, one place to see the network and run your account. AGPL-3.0.
 
-- **Live:** https://aionyn.aitherium.com/ (real data only: signed out you see the
-  welcome page and the connected worlds; sign in with Aitherium to see your network).
-- **Join from Discord:** `/wesyn join` in the Aitherium Discord makes your profile and
-  answers with its link.
+- **Live:** https://aionyn.aitherium.com/ (custom domain https://aionyn.com/ is wired
+  through `public/CNAME`).
+- **Signed out**, the home page is the live public feed, Worlds, Spaces and AitherNet
+  status, read from the public discovery API. Nothing on it is sample data.
+- **Signed in** ("Sign in with Aitherium", OIDC + PKCE), you post, reply, message and
+  manage your account.
 
-Aionyn is in beta. It is identity and the professional network (the LinkedIn
-replacement); it grew out of Wesyn on 2026-11-15, and Wesyn continues as its own product.
-Integrations with OccupySaaS's zeroauthy and salescompel: [docs/occupysaas-integrations.md](docs/occupysaas-integrations.md).
+## What's inside
 
-Aionyn is in beta. Expect rough edges and missing pieces; the issues list says which.
+### Social network
 
-## What makes it different
-
-| | Aionyn |
+| Route | What it is |
 |---|---|
-| Reputation | Earned in communities (shipped work, reviews, badges). Nobody types their own. |
-| GitHub | Shown only when PROVED by signing in with GitHub, never a typed handle. |
-| Communities | Each Discord server is a world: its Relay rooms and forum board, with an optional OSINT panel and the in-tab copilot. Discord is the primary backend; AitherRelay and IRC mirror it so the network keeps working when Discord is down. |
-| Privacy | The server decides. A private profile shows the word "private" and nothing else. |
-| Code | AGPL-3.0. Run it, fork it, self-host it. |
+| `#/` | **Feed.** Live public stream of AitherRelay rooms, Forum threads (plain-text excerpts) and openAW activity, filterable by source. Signed in: inline composer and Relay thread replies. |
+| `#/forums` | **Forums.** The Relay workspace forum boards: threads, search, reply, new thread. |
+| `#/worlds`, `#/w/<slug>` | **Worlds.** Each World is a Relay workspace bridged with its Discord server: rooms, live chat, forum, pinned links, optional OSINT panel and in-tab copilot. |
+| `#/spaces`, `#/u/<user>` | **Aither Spaces.** Public member directory and member pages (standing, Space blocks, connection status). |
+| `#/messages` | **Messages.** Direct messages over Relay. |
+| `#/network` | **AitherNet.** Live mesh status: online nodes, providers, public relays and rooms, served models. |
+| `#/people`, `#/jobs`, `#/import` | Connections, Jobs from your Worlds, and import from your own LinkedIn data export. |
 
-## How it works
+### Personal Account Hub (`#/account`, `#/vault` redirects)
+
+One Aitherium ID across `openaw.org`, `eusyra.com`, `shop.aitherium.com` and
+`app.aitherium.com`, managed in five tabs:
+
+| Tab | Route | What it does |
+|---|---|---|
+| **Services** | `#/account` | The apps your ID is signed into (OIDC grants), with connect and revoke. |
+| **Profile & Space** | `#/account/profile` | Inline editor for your profile, links and public Space. |
+| **Security** | `#/account/security` | Sessions, devices, API keys, the write-only **Personal Lockbox** for bring-your-own keys, MFA and passkeys, linked accounts. |
+| **Billing & Packs** | `#/account/billing` | Plan, Shop and Eusyra packs, invoices, Stripe customer portal, Wallet and Credits. |
+| **Privacy & Data** | `#/account/privacy` | Visibility, consents, data export, and handoff to the first-party IdP for recovery and deletion. |
+
+### Design and privacy principles
+
+- **Editorial monochrome.** Dark and light themes, hairline 3-column shell, no
+  gradients, no neon.
+- **Bearer only.** Every authenticated call sends `Authorization: Bearer <token>` with
+  `credentials: 'omit'`. The server derives the member from the token's `sub`; the
+  client never sends a user id.
+- **Nothing privileged in the page.** No raw password fields, no admin surface and no
+  secret in the browser bundle. Passwords, passkey enrolment, recovery and deletion stay
+  on the first-party IdP; the Lockbox is write-only (values are never read back).
+- **Privacy is the server's.** A profile the server refuses renders one line
+  ("private") and nothing else.
+
+## Architecture
 
 ```
- browser (this app, static on GitHub Pages)
-   |  1. "Sign in with Aitherium": OIDC code + PKCE (S256), public client `aionyn-pages`
-   |     -> idp.aitherium.com/identity/oidc/authorize -> back to /?code&state
-   |     -> POST /oidc/token with the verifier -> access token (sessionStorage, this tab)
-   |  2. every read: Authorization: Bearer <token>, credentials: 'omit'
+ browser: this app, static on GitHub Pages (aionyn.aitherium.com)
+   |  "Sign in with Aitherium": OIDC code + PKCE (S256), public client `aionyn-pages`
+   |    -> idp.aitherium.com/identity/oidc/authorize -> back to /?code&state
+   |    -> POST /oidc/token with the verifier -> access token (sessionStorage, this tab)
    v
- api.aitherium.com/api/*  (non-credentialed CORS for this app's origin)
-   |-- /myspace/{user}            the member's Space; 403 when this viewer may not see it
-   |-- /myspace/{user}/standing   earned community standing, OAuth-proved GitHub, connections
-   |-- /myspace/network/planets   the viewer's own workspaces and their Discord servers
-   |-- /social/friends[...]       connections and requests
-   `-- /relay/v1/channels/...     the rooms this viewer may read (Discord forums mirror here)
+ api.aitherium.com
+   |-- /api/aionyn/public/{feed,spaces,worlds,aithernet}    no auth: signed-out discovery
+   |-- /api/aionyn/account/{handoff,me,profile,space,       bearer: the Account Hub
+   |     sessions,devices,api-keys,lockbox,security,
+   |     services,billing,wallet,privacy,export}
+   |-- /api/relay/v1/{channels,workspaces,dms}/...          bearer: rooms, forums, Worlds, DMs
+   |-- /api/myspace/{user}[/standing], /api/social/...      bearer: Spaces, connections
+   `-- /api/osint/{news,telemetry}                          public read door for World OSINT
 ```
 
-The page holds no secret. The IdP accepts exactly one callback for this client,
-`https://aionyn.aitherium.com/`; a fork on another Pages origin cannot obtain a
-token for it, and should register its own client.
+| Module | Role |
+|---|---|
+| `src/api/public.ts` | Signed-out discovery client. No auth header; never invents users or node counts when degraded. |
+| `src/api/live.ts` | `LiveClient`: the signed-in social network (Spaces, feed, connections, Relay posts and replies). |
+| `src/api/worlds-live.ts` | Worlds, forums, live chat, DMs and OSINT over Relay. |
+| `src/api/account.ts` | Account Hub client for `/api/aionyn/account/*`. |
+| `src/auth/oidc.ts` | PKCE sign-in, callback and sign-out. |
 
-Without a token the app uses `SampleClient` (`src/api/sample.ts`). With one it uses
-`LiveClient` (`src/api/live.ts`). Both implement `NetworkClient` (`src/api/types.ts`),
-so every screen is the same code in both modes.
+The page holds no secret. The IdP accepts exactly one callback for `aionyn-pages`,
+`https://aionyn.aitherium.com/`; a fork on another origin must register its own client.
+More: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md),
+[docs/linkedin-interop.md](docs/linkedin-interop.md),
+[docs/occupysaas-integrations.md](docs/occupysaas-integrations.md).
 
-More: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). LinkedIn interop (sign-in, import from your own data export, opt-in sharing, JobPosting JSON-LD, and why no LinkedIn SDK is used): [docs/linkedin-interop.md](docs/linkedin-interop.md).
-
-## Run it
+## Develop
 
 ```bash
 npm ci
-npm run dev        # http://localhost:5173/
-npm test
+npm run dev          # http://localhost:5173/
+npm run check:size   # prints "ok": no source file over 500 lines
+npm run typecheck
+npm test             # vitest, 113+ tests
 npm run build
 ```
 
-Live sign-in works only from the registered callback (the Pages URL). Local
-development runs in sample mode.
+Local dev reads the public API live. Sign-in only completes on the registered callback
+(the Pages URL), so signed-in screens are covered by tests rather than local login.
+`src/api/sample.ts` is a fictional test fixture; the app never shows it.
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md). Start with an issue labelled
-`good first issue`. AI agents are welcome on issues labelled `agent-ok`; a human
-maintainer approves their pull requests.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md). Start with an issue
+labelled `good first issue`. AI agents work issues labelled `agent-ok`.
 
 ## Credits
 
 The social data model follows **ShlinkedIn** (https://github.com/cbh123/shlinked,
-AGPL-3.0). We ported the shape of its profiles, endorsements, work history, connection
-requests, posts and groups, and left out its satire content and joke mechanics. See
-[NOTICE](NOTICE) and [docs/shlinked-intake.md](docs/shlinked-intake.md).
+AGPL-3.0): the shape of its profiles, endorsements, work history, connection requests,
+posts and groups, without its satire content or joke mechanics. The World OSINT panel
+shows rows from the **ShadowBroker** board (https://github.com/wizzense/Shadowbroker,
+AGPL-3.0). See [NOTICE](NOTICE) and [docs/shlinked-intake.md](docs/shlinked-intake.md).
 
 ## Licence
 

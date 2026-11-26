@@ -1,11 +1,11 @@
-Wesyn
-Copyright (C) 2026 Aitherium and the Wesyn contributors.
+Aionyn
+Copyright (C) 2026 Aitherium and the Aionyn contributors.
 
 Licensed under the GNU Affero General Public License, version 3 only (see LICENSE).
 
 The social data model (profiles, endorsements, work history, connection requests,
 posts, groups) follows ShlinkedIn, https://github.com/cbh123/shlinked, which is
-licensed under the GNU Affero General Public License, version 3. Wesyn ports the
+licensed under the GNU Affero General Public License, version 3. Aionyn ports the
 shape of that model to TypeScript; it does not copy ShlinkedIn's Elixir source,
 its satire content or its joke mechanics. See docs/shlinked-intake.md.
 
@@ -17,5 +17,5 @@ The optional in-tab copilot loads Aitherium's Bonsai runtime from aitherium.com 
 time. That runtime is separately licensed and is not part of this repository or this
 licence; see docs/ARCHITECTURE.md ("The copilot").
 
-"Wesyn" and the Wesyn mark are not licensed under the AGPL. Forks are welcome under
+"Aionyn" and the Aionyn mark are not licensed under the AGPL. Forks are welcome under
 the licence; please give them a different name.

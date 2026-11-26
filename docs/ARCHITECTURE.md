@@ -1,109 +1,132 @@
-# Wesyn architecture
+# Aionyn architecture
 
-## Layers
+Aionyn is a static React + TypeScript SPA (Vite, GitHub Pages) with no server of its
+own. It reads `api.aitherium.com` in two modes: signed out through the public discovery
+API, signed in as the member with an OIDC bearer token.
 
-| layer | what | where it lives |
+## The shell
+
+`src/App.tsx` renders one hairline **3-column grid** (`228px | minmax(0, 640px) | 300px`,
+`src/styles.css`) with hash routes:
+
+| column | component | contents |
 |---|---|---|
-| Network | profiles, earned standing, connections, worlds | this app + Aitherium Spaces (`/myspace/*`) |
-| Conversation | posts, threads, forums, DMs | Discord forums and channels, mirrored to AitherRelay rooms |
-| Pages | docs, wikis, boards | Wesyn Pages (planned) |
-| Copilot | Aither, in Discord and in the app | Aitherium agents |
-| Apps | the Occupy SaaS suite underneath | self-hostable |
+| left | `LeftRail` (`src/components/ShellRails.tsx`) | brand, nav (Feed, Forums, Worlds, Spaces, Messages, AitherNet, Account), Connections, Import, theme toggle, sign in/out |
+| center | `renderCenter()` in `App.tsx` | the routed view, then the footer with the Aitherium family links |
+| right | `RightRail` | live AitherNet pulse and the public Worlds list |
 
-## Discord is the primary backend; Relay and IRC are the mirror
+Routes: `#/` (feed), `#/forums`, `#/worlds`, `#/w/<slug>` (also `#/worlds/<slug>`),
+`#/spaces`, `#/u/<user>`, `#/messages`, `#/network`, `#/people`, `#/jobs`, `#/import`,
+`#/account[/<tab>]`. Retired routes redirect: `#/planets` to `#/worlds`, `#/vault[/<tab>]`
+to `#/account[/<tab>]` (`legacyRoute()`).
 
-A world (called a "planet" until 2026-11-15) is a Discord server bound to an Aitherium workspace, and that workspace's AitherRelay rooms and forum board. Roles in that server are
-membership; channels and forums are the discussions.
+## Data clients
+
+| file | auth | serves |
+|---|---|---|
+| `src/api/public.ts` | none, `credentials: 'omit'` | `/api/aionyn/public/{feed,spaces,worlds,aithernet}`: the signed-out feed (`WelcomeView`), Spaces directory, Worlds list, AitherNet pulse. Degraded answers show a note, never invented people or node counts. |
+| `src/api/live.ts` | bearer | `LiveClient`: viewer (OIDC userinfo), Spaces and standing (`/api/myspace/*`), connections (`/api/social/*`), the signed-in feed and Relay posts and thread replies (`/api/relay/v1/channels/*`). |
+| `src/api/worlds-live.ts` | bearer | Worlds, forum boards, live chat, DMs (`/api/relay/v1/{workspaces,channels,dms}`) and OSINT (`/api/osint/*`). |
+| `src/api/account.ts` | bearer | `AccountApi` over `/api/aionyn/account/*` (below). |
+| `src/api/excerpt.ts` | n/a | plain-text excerpts of forum markdown for feed cards. |
+| `src/auth/oidc.ts` | n/a | PKCE authorize URL, callback, token storage, sign-out. |
+
+`src/api/sample.ts` is a fictional fixture for tests only. Signed out, the app has no
+`NetworkClient` and shows only live public data.
+
+## Account Hub
+
+`#/account` (`src/views/Account.tsx`, tabs in `src/views/account/`) manages one
+Aitherium ID across `openaw.org`, `eusyra.com`, `shop.aitherium.com` and
+`app.aitherium.com`. Tabs are declared in `src/views/account/tabs.ts`:
+
+| tab | route | endpoints under `/api/aionyn/account` |
+|---|---|---|
+| Services | `#/account` | `services`, `services/<key>/<verb>` |
+| Profile & Space | `#/account/profile` | `profile` (PATCH), `space` (PUT) |
+| Security | `#/account/security` | `sessions`, `sessions/revoke-others`, `devices`, `api-keys`, `lockbox/<name>` (write-only), `security` |
+| Billing & Packs | `#/account/billing` | `billing`, `billing/portal` (Stripe), `wallet` |
+| Privacy & Data | `#/account/privacy` | `privacy` (PATCH), `export` |
+
+`handoff` returns the first-party IdP URLs for password change, passkey enrolment, MFA,
+recovery and deletion. Those ceremonies never run in the SPA. The server derives the
+member from the verified token's `sub`; the client never sends a user id. The Lockbox
+lists secret names and accepts new values; it never reads a value back.
+
+## Identity
+
+"Sign in with Aitherium" is OIDC authorization code with PKCE (S256) against
+`idp.aitherium.com/identity`. The client `aionyn-pages` is public (no secret) and its
+only callback is `https://aionyn.aitherium.com/`. The access token lives in
+`sessionStorage` for the tab and is sent only as a bearer header with
+`credentials: 'omit'`. Build-time overrides (`VITE_WESYN_API_BASE`,
+`VITE_WESYN_OIDC_CLIENT`, `VITE_WESYN_OIDC_REDIRECT`, `VITE_WESYN_OIDC_API`) keep
+their historical names.
+
+## Worlds: Discord is the primary backend, Relay and IRC the mirror
+
+A World is a Discord server bound to an Aitherium workspace: that workspace's
+AitherRelay rooms and forum board.
 
 ```
-Discord server (world)                          Aitherium
+Discord server (World)                          Aitherium
   forum post / thread / message  --gateway-->  awdiscord bot --hook--> DiscordRelayBridge
                                                                           |
                                          AitherRelay room  <--------------'
                                            |        ^
                     IRC clients <-- AitherRelayIRCD (RFC 1459 over TLS, a Relay client)
                                            |
-                                Wesyn feed reads /relay/v1/channels/<room>/messages
+                                Aionyn reads /api/relay/v1/channels/<room>/messages
 ```
 
 - **One conversation, two transports.** The bridge mirrors messages, threads, forum
-  posts, edits, deletes and reactions both ways, so a Wesyn post and its Discord forum
-  thread are the same conversation.
-- **Survives Discord going dark.** Relay holds its own copy; IRC and the Wesyn app keep
-  reading and writing Relay, and the bridge backfills Discord when it returns.
-- **The IRC gateway holds no privileged credential.** It authenticates to Relay with the
-  connecting user's own bearer token and inherits every gate Relay enforces.
+  posts, edits, deletes and reactions both ways.
+- **Survives Discord going dark.** Relay holds its own copy and backfills Discord when
+  it returns.
+- **The IRC gateway holds no privileged credential.** It uses the connecting user's own
+  bearer token.
 
-## Identity
+`#/w/<slug>` shows pinned links (`world.pinned`), the forum, live chat (Relay rooms,
+polled every 5 s), an optional read-only OSINT panel and the copilot. World settings are
+written by a World admin through `PUT /relay/v1/workspaces/<slug>`; Relay validates them.
 
-"Sign in with Aitherium" is OIDC authorization code with PKCE (S256) against
-`idp.aitherium.com/identity`. The client `aionyn-pages` is public (no secret), PKCE is
-mandatory, and its only callback is `https://aionyn.aitherium.com/`. The access
-token is kept in `sessionStorage` for the tab and sent only as a bearer header.
-
-A Discord member links their Discord account to their Aitherium account once
-(`/space` or `/wesyn join` tells them how). After that, `/wesyn join` makes their profile
-from Discord and answers with its link.
+**OSINT.** The panel calls the platform's public read door, which signs each request to
+the ShadowBroker board (github.com/wizzense/Shadowbroker, AGPL-3.0) server-side. Every
+row keeps its source link and is labelled a lead to verify.
 
 ## Privacy rules the client keeps
 
-1. The profile PAGE read is the gate. Anything but 2xx renders one line and nothing else.
+1. The profile page read is the gate. Anything but 2xx renders one line and nothing else.
 2. If the standing read is stricter than the page read, the stricter answer wins.
 3. Requests never carry cookies (`credentials: 'omit'`).
-4. The feed reads only rooms the server lists for this viewer; a room that answers 403
-   contributes nothing.
+4. The feed reads only rooms the server lists for this viewer; a 403 room contributes
+   nothing.
 
 ## Data model
 
-`src/api/types.ts`. It follows ShlinkedIn's model (see `docs/shlinked-intake.md`):
-profile, work entry, endorsement, connection request, post, group (world), with
-provenance on every fact (`proved`, `earned`, `claimed`). Only proved and earned facts
-count toward standing.
-
-## Worlds
-
-A world (called a "planet" until 2026-11-15; `#/planets` redirects to `#/worlds`) is
-one AitherRelay workspace. That workspace has rooms (`#<slug>-general`, ...) and a forum
-board (`/relay/v1/workspaces/<slug>/forum/*`), and the Discord server bound to it
-mirrors into those same rooms through the Discord-to-workspace mapping. Wesyn keeps no
-forum engine and no message table of its own. `#/w/<slug>` is the world page:
-
-| part | what it reads and writes |
-|---|---|
-| Pinned (`data-slot="world-pinned"`) | `world.pinned` on the Relay workspace (sites and agents the Studio pins) |
-| Forum | boards, threads, search, reply and new thread, all Relay's workspace forum |
-| Live chat | the world's Relay rooms, polled every 5 s; send posts as the member |
-| OSINT | `GET /api/osint/news` and `/api/osint/telemetry` for `world.osint.query` or a typed region |
-| Copilot | the in-tab Bonsai agent (below) |
-
-World settings (`world.osint`, `world.pinned`) are written by a world admin through
-`PUT /relay/v1/workspaces/<slug>`, and Relay validates them. Pins must be https links.
-
-**OSINT.** The panel is read-only. It calls the platform's public read door, which signs
-each request to the ShadowBroker board (github.com/wizzense/Shadowbroker, AGPL-3.0) on
-the server. The board's secret never reaches the browser. Every row keeps its own
-source link and is labelled a lead to verify, and the panel credits the board and its
-software.
+`src/api/types.ts` follows ShlinkedIn's model (`docs/shlinked-intake.md`): profile, work
+entry, endorsement, connection request, post, group (World), with provenance on every
+fact (`proved`, `earned`, `claimed`). Only proved and earned facts count toward standing.
 
 ## The copilot
 
-Profiles and world pages carry a copilot that runs **Bonsai on the member's own GPU,
-inside the tab**. It uses Aitherium's in-tab runtime, the same worker
-(`https://aitherium.com/workers/webgpu-brain-bonsai-worker.js`) and tool parser
-(`https://aitherium.com/gobbonet/bonsai-tools.js`) that aitherium.com/edge-agent runs.
-That runtime is **not part of this repository**. It is Aitherium's own, separately
-licensed software. It is fetched from aitherium.com only when the member clicks
-"Load on my GPU", and this app talks to it only through the worker's message protocol.
-No prompt leaves the tab.
+World pages carry a copilot that runs **Bonsai on the member's own GPU, inside the
+tab**, using Aitherium's in-tab runtime
+(`https://aitherium.com/workers/webgpu-brain-bonsai-worker.js` and
+`https://aitherium.com/gobbonet/bonsai-tools.js`). That runtime is **not part of this
+repository**; it is separately licensed, fetched only when the member clicks "Load on
+my GPU", and spoken to only through the worker's message protocol. No prompt leaves the
+tab.
 
-The tool loop runs in the page (`src/copilot/loop.ts`) and the tools are in
-`src/copilot/tools.ts`. They act as the signed-in member with the member's own token:
+The loop is `src/copilot/loop.ts`; tools are `src/copilot/tools.ts` and act with the
+member's own token. `wesyn_read_feed`, `wesyn_search_threads`, `wesyn_read_thread`,
+`osint_news` and `osint_telemetry` read at once. `wesyn_post_reply` and
+`wesyn_message_member` only make a **draft** that the member sends. The same tools are
+registered with WebMCP (`navigator.modelContext`) when the browser has it.
 
-- `wesyn_read_feed`, `wesyn_search_threads`, `wesyn_read_thread` and `osint_news` /
-  `osint_telemetry` read at once.
-- `wesyn_post_reply` and `wesyn_message_member` only make a **draft**. The draft is sent
-  when the member clicks Post or Send on it. The model is told this, so it cannot claim
-  it posted.
+## Design rules
 
-The same tools are registered with WebMCP (`navigator.modelContext`) when the browser
-has it, under the same draft rule.
+- Editorial monochrome: dark and light themes, hairline rules, no gradients, no neon,
+  no decorative color.
+- No file over 500 lines (`npm run check:size`).
+- No raw password field, no admin surface, no secret in the bundle.
