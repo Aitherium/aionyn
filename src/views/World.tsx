@@ -47,12 +47,12 @@ function WorldFeed({ client, channels, slug }: { client: NetworkClient; channels
   return (
     <div className="stack">
       <Composer client={client} rooms={channels} onPosted={() => setTick(n => n + 1)} />
-      <div className="row between">
-        <span className="dim small">Aggregated posts from this World&apos;s Relay channels.</span>
-        <button className="ghost btn-sm" type="button" onClick={() => setTick(n => n + 1)}>Refresh</button>
+      <div className="section-bar">
+        <span>Relay Channels</span>
+        <button className="linkish xs" type="button" onClick={() => setTick(n => n + 1)}>Refresh</button>
       </div>
-      {items === null && <p className="dim">Loading World feed…</p>}
-      {items?.length === 0 && <div className="card dim">No posts in this World&apos;s channels yet.</div>}
+      {items === null && <div className="empty-state">Loading World feed…</div>}
+      {items?.length === 0 && <div className="empty-state">No posts in this World&apos;s channels yet.</div>}
       {items?.map(item => <PostCard key={item.id} item={item} />)}
     </div>
   )
@@ -100,38 +100,54 @@ function Chat({ client, channels }: { client: NetworkClient; channels: string[] 
   }
 
   return (
-    <section className="card stack-sm" aria-label="Live chat">
-      <div className="row between wrap">
-        <h2>Live Relay Chat</h2>
-        <button className="ghost btn-sm" type="button" onClick={() => void pull()} disabled={syncing}>
+    <section className="stack" aria-label="Live chat">
+      {channels.length > 0 && (
+        <div className="tab-bar sub" role="tablist" aria-label="Rooms">
+          {channels.map(c => (
+            <button
+              key={c}
+              type="button"
+              role="tab"
+              aria-selected={c === room}
+              className={c === room ? 'tab-btn active' : 'tab-btn'}
+              onClick={() => setRoom(c)}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="section-bar">
+        <span>Live Relay Chat</span>
+        <button className="linkish xs" type="button" onClick={() => void pull()} disabled={syncing}>
           {syncing ? 'Syncing…' : 'Refresh'}
         </button>
       </div>
-      <nav className="row wrap" aria-label="Rooms">
-        {channels.map(c => (
-          <button key={c} type="button" className={c === room ? 'chip-btn active' : 'chip-btn'} aria-pressed={c === room} onClick={() => setRoom(c)}>
-            {c}
-          </button>
-        ))}
-      </nav>
-      {!channels.length && <p className="dim">This world has no rooms you can read.</p>}
-      {lines?.length === 0 && <p className="dim">No messages yet.</p>}
-      <ol className="rows chat">
-        {lines?.map(l => (
-          <li key={l.id}>
-            <a href={`#/u/${encodeURIComponent(l.author)}`}>@{l.author}</a>
-            {' '}
-            <span className="mono dim small">{ago(l.timestamp)}</span> {l.body}
-          </li>
-        ))}
-      </ol>
+
+      {!channels.length && <div className="empty-state">This world has no rooms you can read.</div>}
+      {lines?.length === 0 && <div className="empty-state">No messages yet.</div>}
+
+      {lines && lines.length > 0 && (
+        <ol className="list-rows chat">
+          {lines.map(l => (
+            <li key={l.id} className="list-row">
+              <a className="post-author-name" href={`#/u/${encodeURIComponent(l.author)}`}>@{l.author}</a>
+              {' '}
+              <span className="xs muted">{ago(l.timestamp)}</span>
+              <p style={{ marginTop: 3 }}>{l.body}</p>
+            </li>
+          ))}
+        </ol>
+      )}
+
       {room && (
-        <form className="row" onSubmit={send}>
+        <form className="pane-section row" onSubmit={send}>
           <input aria-label="Say something" placeholder={`Message ${room}`} value={draft} onChange={e => setDraft(e.target.value)} />
-          <button className="primary" type="submit" disabled={!draft.trim()}>Send</button>
+          <button className="primary btn-sm" type="submit" disabled={!draft.trim()}>Send</button>
         </form>
       )}
-      {msg && <p className="err">{msg}</p>}
+      {msg && <p className="notice-row err">{msg}</p>}
     </section>
   )
 }
@@ -166,16 +182,22 @@ export function WorldView({
       ? 'This world has no Relay space yet: its forum and rooms appear once it is set up.'
       : err
     return (
-      <div className="card stack-sm">
-        <p className="err" role="alert">{text}</p>
-        {publicWorld?.inviteUrl && (
-          <p><a className="link" href={publicWorld.inviteUrl} target="_blank" rel="noopener noreferrer">Join {publicWorld.name} on Discord ↗</a></p>
-        )}
-        <p><a href="#/worlds">← Back to Worlds</a></p>
-      </div>
+      <section className="stack">
+        <header className="stream-header">
+          <h1>{publicWorld?.name || slug}</h1>
+          <a className="small dim" href="#/worlds">All worlds</a>
+        </header>
+        <div className="pane-section stack-sm">
+          <p className="err" role="alert">{text}</p>
+          {publicWorld?.inviteUrl && (
+            <p><a className="link" href={publicWorld.inviteUrl} target="_blank" rel="noopener noreferrer">Join {publicWorld.name} on Discord ↗</a></p>
+          )}
+          <p><a href="#/worlds">← Back to Worlds</a></p>
+        </div>
+      </section>
     )
   }
-  if (!world) return <p className="dim">Loading World…</p>
+  if (!world) return <div className="empty-state">Loading World…</div>
 
   const pinned = world.settings.pinned || []
   const showOsint = osintOpen || !!world.settings.osint
@@ -184,89 +206,97 @@ export function WorldView({
 
   return (
     <div className="stack" aria-label={`World: ${world.name}`}>
-      <header className="card stack-sm">
-        <div className="row between wrap">
-          <div>
-            <h1>{world.name}</h1>
-            <p className="mono dim small">{world.role} · {world.channels.length} room(s) · workspace {world.slug}</p>
-          </div>
-          <div className="row wrap">
-            <a className="link" href={wsUrl} target="_blank" rel="noopener noreferrer">Open Workspace ↗</a>
-            {publicWorld?.inviteUrl && (
-              <a className="link" href={publicWorld.inviteUrl} target="_blank" rel="noopener noreferrer">Discord ↗</a>
-            )}
-          </div>
+      <header className="stream-header">
+        <h1>{world.name}</h1>
+        <div className="row">
+          <a className="small dim" href={wsUrl} target="_blank" rel="noopener noreferrer">Workspace ↗</a>
+          {publicWorld?.inviteUrl && (
+            <a className="small dim" href={publicWorld.inviteUrl} target="_blank" rel="noopener noreferrer">Discord ↗</a>
+          )}
         </div>
-        {(world.description || publicWorld?.description) && <p className="dim">{world.description || publicWorld?.description}</p>}
-
-        <nav className="world-tabs" role="tablist" aria-label="World sections">
-          {([
-            ['feed', 'Feed'],
-            ['chat', 'Chat'],
-            ['forum', 'Forum'],
-            ['workspace', 'Workspace & Discord'],
-          ] as const).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              aria-selected={tab === key}
-              className={tab === key ? 'world-tab active' : 'world-tab'}
-              onClick={() => setTab(key)}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
       </header>
+
+      <div className="pane-section stack-xs">
+        <p className="mono xs muted">{world.role} · {world.channels.length} room(s) · {world.slug}</p>
+        {(world.description || publicWorld?.description) && (
+          <p className="dim small">{world.description || publicWorld?.description}</p>
+        )}
+      </div>
+
+      <nav className="tab-bar sub" role="tablist" aria-label="World sections">
+        {([
+          ['feed', 'Feed'],
+          ['chat', 'Chat'],
+          ['forum', 'Forum'],
+          ['workspace', 'Workspace & Discord'],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            role="tab"
+            aria-selected={tab === key}
+            className={tab === key ? 'tab-btn active' : 'tab-btn'}
+            onClick={() => setTab(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
 
       {tab === 'feed' && <WorldFeed client={client} channels={world.channels} slug={world.slug} />}
       {tab === 'chat' && <Chat client={client} channels={world.channels} />}
       {tab === 'forum' && <Forum client={client.world} slug={world.slug} refresh={tick} />}
       {tab === 'workspace' && (
         <div className="stack">
-          <section className="card stack-sm" aria-label="Workspace and Discord bridge">
+          <section className="pane-section stack-sm" aria-label="Workspace and Discord bridge">
             <h2>Workspace &amp; Discord Bridge</h2>
-            <p className="dim">
+            <p className="dim small">
               {publicWorld?.guildName
                 ? `Linked to Discord server "${publicWorld.guildName}". Bridged channels mirror directly into AitherRelay.`
                 : 'Connected to your AitherOS Workspace. Link a Discord server in AitherOS Workspaces to mirror channels.'}
             </p>
             {bridged.length > 0 && (
-              <div className="post-chips">
-                {bridged.map(ch => <span key={ch} className="pill">{ch}</span>)}
-              </div>
+              <p className="mono xs muted">{bridged.join(' · ')}</p>
             )}
             <div className="row wrap">
-              <a className="primary link" href={wsUrl} target="_blank" rel="noopener noreferrer">
+              <a className="primary link btn-sm" href={wsUrl} target="_blank" rel="noopener noreferrer">
                 Open AitherOS Workspace ↗
               </a>
               {publicWorld?.inviteUrl && (
-                <a className="link" href={publicWorld.inviteUrl} target="_blank" rel="noopener noreferrer">
+                <a className="link btn-sm" href={publicWorld.inviteUrl} target="_blank" rel="noopener noreferrer">
                   Join Discord Server ↗
                 </a>
               )}
             </div>
           </section>
 
-          <section className="card" data-slot="world-pinned" aria-label="Pinned">
+          <section className="pane-section" data-slot="world-pinned" aria-label="Pinned">
             <h2>Pinned Sites &amp; Agents</h2>
-            {pinned.length === 0 && <p className="dim">No sites or agents pinned to this world yet.</p>}
-            <ul className="rows">
-              {pinned.map(p => (
-                <li key={p.url}>
-                  <span className="mono dim">{p.kind}</span>{' '}
-                  <a href={p.url} target="_blank" rel="noopener noreferrer">{p.title}</a>
-                </li>
-              ))}
-            </ul>
+            {pinned.length === 0 ? (
+              <p className="dim small">No sites or agents pinned to this world yet.</p>
+            ) : (
+              <ul className="rows">
+                {pinned.map(p => (
+                  <li key={p.url}>
+                    <span className="mono xs muted">{p.kind}</span>{' '}
+                    <a href={p.url} target="_blank" rel="noopener noreferrer">{p.title}</a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
 
           <div className="stack" data-slot="world-side">
             <Copilot world={world} client={client.world} me={me} />
-            {showOsint
-              ? <Osint client={client.world} world={world} onSaved={() => setTick(n => n + 1)} />
-              : <button className="ghost" type="button" onClick={() => setOsintOpen(true)}>Open the OSINT panel</button>}
+            {showOsint ? (
+              <Osint client={client.world} world={world} onSaved={() => setTick(n => n + 1)} />
+            ) : (
+              <div className="pane-section">
+                <button className="ghost btn-sm" type="button" onClick={() => setOsintOpen(true)}>
+                  Open OSINT panel
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -140,64 +140,78 @@ export function ForumsView({
 
   return (
     <section className="stack" aria-label="Forums">
-      <div className="card stack-sm">
-        <div className="row between wrap">
-          <h2>Forums &amp; RFCs</h2>
-          <button className="ghost btn-sm" type="button" onClick={() => setTick(n => n + 1)}>Refresh</button>
-        </div>
-        <p className="dim">
-          Unified discussions across every World forum you belong to, alongside public openAW updates and RFCs.
-        </p>
-        <div className="filter-pills" role="group" aria-label="Filter forums">
-          <button type="button" className={filter === 'all' ? 'chip-btn active' : 'chip-btn'} onClick={() => setFilter('all')}>
-            All
+      <header className="stream-header">
+        <h1>Forums &amp; RFCs</h1>
+        <button className="linkish xs" type="button" onClick={() => setTick(n => n + 1)}>
+          Refresh
+        </button>
+      </header>
+
+      <div className="tab-bar sub" role="tablist" aria-label="Filter forums">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={filter === 'all'}
+          className={filter === 'all' ? 'tab-btn active' : 'tab-btn'}
+          onClick={() => setFilter('all')}
+        >
+          All
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={filter === 'openaw'}
+          className={filter === 'openaw' ? 'tab-btn active' : 'tab-btn'}
+          onClick={() => setFilter('openaw')}
+        >
+          openAW
+        </button>
+        {worlds.map(w => (
+          <button
+            key={w.slug}
+            type="button"
+            role="tab"
+            aria-selected={filter === w.slug}
+            className={filter === w.slug ? 'tab-btn active' : 'tab-btn'}
+            onClick={() => setFilter(w.slug)}
+          >
+            {w.name}
           </button>
-          <button type="button" className={filter === 'openaw' ? 'chip-btn active' : 'chip-btn'} onClick={() => setFilter('openaw')}>
-            openAW Updates &amp; RFCs
-          </button>
-          {worlds.map(w => (
-            <button
-              key={w.slug}
-              type="button"
-              className={filter === w.slug ? 'chip-btn active' : 'chip-btn'}
-              onClick={() => setFilter(w.slug)}
-            >
-              {w.name}
-            </button>
-          ))}
-        </div>
+        ))}
       </div>
 
       {!client && (
-        <div className="card notice-banner row between wrap">
-          <span className="dim small">Sign in with Aitherium to browse your World forums, start threads, and post replies.</span>
+        <div className="signin-strip">
+          <span>Sign in with Aitherium to browse your World forums, start threads, and reply.</span>
           <button className="primary btn-sm" type="button" onClick={signIn}>Sign in</button>
         </div>
       )}
 
-      {msg && <p className="ok" role="status">{msg}</p>}
+      {msg && <p className="notice-row ok" role="status">{msg}</p>}
 
       {open ? (
-        <article className="card stack-sm" aria-label={`Thread: ${open.thread.title}`}>
-          <div className="row between wrap">
-            <button className="linkish" type="button" onClick={() => setOpen(null)}>← Back to all forums</button>
-            <a className="mono small" href={`#/worlds/${encodeURIComponent(open.slug)}`}>{open.worldName}</a>
+        <article className="stack" aria-label={`Thread: ${open.thread.title}`}>
+          <div className="pane-section stack-sm">
+            <div className="row between wrap">
+              <button className="linkish small" type="button" onClick={() => setOpen(null)}>← Back to forums</button>
+              <a className="mono xs muted" href={`#/worlds/${encodeURIComponent(open.slug)}`}>{open.worldName}</a>
+            </div>
+            <h3>{open.thread.title}</h3>
           </div>
-          <h3>{open.thread.title}</h3>
-          <ol className="rows">
+          <ol className="list-rows">
             {open.posts.map(p => (
-              <li key={p.id} className="stack-xs">
-                <div>
-                  <a href={`#/u/${encodeURIComponent(p.author)}`}>@{p.author}</a>
-                  {p.agent && <span className="pill accent">agent</span>}
-                  <span className="mono dim small"> · {ago(p.createdAt)}</span>
+              <li key={p.id} className="list-row stack-xs">
+                <div className="small muted">
+                  <a className="post-author-name" href={`#/u/${encodeURIComponent(p.author)}`}>@{p.author}</a>
+                  {p.agent && <span> · agent</span>}
+                  <span> · {ago(p.createdAt)}</span>
                 </div>
                 <Markdown text={p.body} />
               </li>
             ))}
           </ol>
           {client && !open.thread.locked && (
-            <form className="stack-sm" onSubmit={sendReply}>
+            <form className="pane-section stack-sm" onSubmit={sendReply}>
               <textarea
                 aria-label="Reply text"
                 rows={3}
@@ -205,8 +219,8 @@ export function ForumsView({
                 value={reply}
                 onChange={e => setReply(e.target.value)}
               />
-              <div className="row">
-                <button className="primary" type="submit" disabled={!reply.trim()}>Post reply</button>
+              <div>
+                <button className="primary btn-sm" type="submit" disabled={!reply.trim()}>Post reply</button>
               </div>
             </form>
           )}
@@ -214,7 +228,7 @@ export function ForumsView({
       ) : (
         <>
           {client && Object.keys(boardsByWorld).some(k => boardsByWorld[k].length > 0) && (
-            <form className="card stack-sm" onSubmit={startThread} aria-label="Start a forum thread">
+            <form className="pane-section stack-sm" onSubmit={startThread} aria-label="Start a forum thread">
               <h2>Start a thread</h2>
               <div className="row wrap">
                 <select
@@ -249,77 +263,68 @@ export function ForumsView({
                 onChange={e => setBody(e.target.value)}
               />
               <div>
-                <button className="primary" type="submit" disabled={!title.trim() || !body.trim() || !targetBoard}>
+                <button className="primary btn-sm" type="submit" disabled={!title.trim() || !body.trim() || !targetBoard}>
                   Post thread
                 </button>
               </div>
             </form>
           )}
 
-          {loading && <div className="card dim">Loading World forums &amp; public RFCs…</div>}
+          {loading && <div className="empty-state">Loading World forums &amp; public RFCs…</div>}
 
           {visibleThreads.length > 0 && (
-            <div className="card stack-sm">
-              <h2>Your World Threads · {visibleThreads.length}</h2>
-              <ul className="rows">
+            <>
+              <div className="section-bar">Your World Threads · {visibleThreads.length}</div>
+              <ul className="list-rows">
                 {visibleThreads.map(t => (
-                  <li key={`${t.worldSlug}:${t.id}`} className="stack-xs">
-                    <div className="row between wrap">
-                      <button
-                        className="linkish thread-link"
-                        type="button"
-                        onClick={() => void openThread(t.worldSlug, t.worldName, t.id)}
-                      >
-                        {t.pinned ? '[pinned] ' : ''}{t.title}
-                      </button>
-                      <span className="pill">{t.worldName} · {t.boardName}</span>
-                    </div>
-                    <p className="mono dim small">
-                      @{t.author} · {t.replies} repl{t.replies === 1 ? 'y' : 'ies'} · {ago(t.updatedAt)}
+                  <li key={`${t.worldSlug}:${t.id}`} className="list-row stack-xs">
+                    <button
+                      className="linkish thread-link"
+                      type="button"
+                      onClick={() => void openThread(t.worldSlug, t.worldName, t.id)}
+                    >
+                      {t.pinned ? '[pinned] ' : ''}{t.title}
+                    </button>
+                    <p className="xs muted tnum">
+                      @{t.author} · {t.replies} repl{t.replies === 1 ? 'y' : 'ies'} · {ago(t.updatedAt)} · {t.worldName} · {t.boardName}
                     </p>
                   </li>
                 ))}
               </ul>
-            </div>
+            </>
           )}
 
-          <div className="card stack-sm">
-            <div className="row between wrap">
-              <h2>Public Forums &amp; openAW RFCs</h2>
-              <a className="mono small" href={OPENAW_SSO_URL} target="_blank" rel="noopener noreferrer">
-                Open openAW ↗
-              </a>
-            </div>
-            {visiblePublic.length === 0 ? (
-              <p className="dim small">
-                {loading
-                  ? 'Checking public forum & openAW feeds…'
-                  : 'No public forum threads or openAW RFC updates published in this filter yet.'}
-              </p>
-            ) : (
-              <ul className="rows">
-                {visiblePublic.map(item => (
-                  <li key={item.id} className="stack-xs">
-                    <div className="row between wrap">
-                      <strong>{item.title || item.body.slice(0, 90)}</strong>
-                      <span className="pill accent">{item.source === 'openaw' ? 'openAW' : item.channel}</span>
-                    </div>
-                    {item.title && <p className="dim small clamp">{item.body}</p>}
-                    <p className="mono dim small">
-                      @{item.author}
-                      {item.timestamp ? ` · ${ago(item.timestamp)}` : ''}
-                      {item.url && (
-                        <>
-                          {' · '}
-                          <a href={item.url} target="_blank" rel="noopener noreferrer">Read on source ↗</a>
-                        </>
-                      )}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <div className="section-bar">
+            <span>Public Forums &amp; openAW RFCs</span>
+            <a className="muted" href={OPENAW_SSO_URL} target="_blank" rel="noopener noreferrer">openAW ↗</a>
           </div>
+          {visiblePublic.length === 0 ? (
+            <div className="empty-state">
+              {loading
+                ? 'Checking public forum & openAW feeds…'
+                : 'No public forum threads or openAW updates in this filter yet.'}
+            </div>
+          ) : (
+            <ul className="list-rows">
+              {visiblePublic.map(item => (
+                <li key={item.id} className="list-row stack-xs">
+                  <strong className="thread-link">{item.title || item.body.slice(0, 90)}</strong>
+                  {item.title && <p className="dim small clamp">{item.body}</p>}
+                  <p className="xs muted">
+                    @{item.author}
+                    {item.timestamp ? ` · ${ago(item.timestamp)}` : ''}
+                    {` · ${item.source === 'openaw' ? 'openAW' : item.channel}`}
+                    {item.url && (
+                      <>
+                        {' · '}
+                        <a href={item.url} target="_blank" rel="noopener noreferrer">Read source ↗</a>
+                      </>
+                    )}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
         </>
       )}
     </section>

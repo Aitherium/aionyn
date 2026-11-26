@@ -22,7 +22,8 @@ function renderAt(hash: string) {
 
 describe('App routing & 3-column shell', () => {
   beforeEach(() => {
-    // Keep unit tests deterministic and offline without noisy network failures.
+    localStorage.clear()
+    document.documentElement.dataset.theme = ''
     globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ status: 'degraded', items: [] }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -49,23 +50,33 @@ describe('App routing & 3-column shell', () => {
     unmount()
   })
 
-  it('signed out, renders the 3-column shell, Occupy SaaS, openAW SSO, zero /wesyn join, and never sample people', () => {
+  it('signed out, renders the editorial 3-column shell, Occupy SaaS, openAW SSO, zero hero/pills, and never sample people', () => {
     const { container, unmount } = renderAt('#/')
     expect(container.textContent).toContain('Occupy SaaS')
     expect(container.textContent).not.toContain('(sample)')
     expect(container.textContent).not.toContain('/wesyn join')
     expect(container.textContent).not.toMatch(/planet/i)
     expect(container.textContent).toContain('Powered by Aitherium')
-    expect(container.textContent).toContain('AitherNet Live Pulse')
+    expect(container.textContent).toContain('AitherNet')
     expect(container.innerHTML).not.toContain('https://eusyra.com/')
     expect(container.innerHTML).toContain('https://eusyra.aitherium.com/creators')
     expect(container.innerHTML).toContain('https://shop.aitherium.com/packs')
     expect(container.innerHTML).toContain('https://www.openaw.org/auth/aitherium/start')
+    // Editorial monochrome shell guarantees: zero hero banner, zero pill soup, zero card boxes.
+    expect(container.querySelector('.hero-banner')).toBeNull()
+    expect(container.querySelector('.pill')).toBeNull()
+    expect(container.querySelector('.mini-stats')).toBeNull()
     // Primary nav includes all 7 Phase 1 pillars and excludes fake Jobs.
     for (const href of ['#/', '#/forums', '#/worlds', '#/spaces', '#/messages', '#/network', '#/vault']) {
       expect(container.querySelector(`nav.rail-nav a[href="${href}"]`)).not.toBeNull()
     }
     expect(container.querySelector('nav.rail-nav a[href="#/jobs"]')).toBeNull()
+    // Theme toggle defaults to dark and switches cleanly to light.
+    expect(document.documentElement.dataset.theme).toBe('dark')
+    const themeBtn = container.querySelector<HTMLButtonElement>('button.theme-btn')
+    expect(themeBtn).not.toBeNull()
+    act(() => { themeBtn!.click() })
+    expect(document.documentElement.dataset.theme).toBe('light')
     unmount()
   })
 

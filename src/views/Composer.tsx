@@ -1,4 +1,4 @@
-// Write a post to a room with live markdown preview and optional LinkedIn cross-post. AGPL-3.0-only.
+// Compact inline post composer with markdown preview and optional LinkedIn cross-post. AGPL-3.0-only.
 import { useEffect, useState } from 'react'
 import type { NetworkClient, ShareStatus } from '../api/types'
 import { Markdown } from '../components/Markdown'
@@ -39,15 +39,14 @@ export function Composer({ client, rooms, onPosted }: {
   }
 
   return (
-    <div className="card stack-sm" aria-label="Write a post">
-      <div className="row between wrap">
-        <h2>Compose post</h2>
-        <div className="filter-pills" role="tablist" aria-label="Composer mode">
+    <div className="composer-pane" aria-label="Write a post">
+      <div className="composer-head">
+        <div className="composer-tabs" role="tablist" aria-label="Composer mode">
           <button
             type="button"
             role="tab"
             aria-selected={mode === 'write'}
-            className={mode === 'write' ? 'chip-btn active' : 'chip-btn'}
+            className={mode === 'write' ? 'tab-btn active' : 'tab-btn'}
             onClick={() => setMode('write')}
           >
             Write
@@ -56,12 +55,13 @@ export function Composer({ client, rooms, onPosted }: {
             type="button"
             role="tab"
             aria-selected={mode === 'preview'}
-            className={mode === 'preview' ? 'chip-btn active' : 'chip-btn'}
+            className={mode === 'preview' ? 'tab-btn active' : 'tab-btn'}
             onClick={() => setMode('preview')}
           >
             Preview
           </button>
         </div>
+        <span className="mono muted xs tnum">{text.length}/3000</span>
       </div>
 
       {mode === 'write' ? (
@@ -71,38 +71,39 @@ export function Composer({ client, rooms, onPosted }: {
           value={text}
           maxLength={3000}
           onChange={e => setText(e.target.value)}
-          placeholder="Share what you shipped, learned, or need. Supports **markdown**, `code`, and links."
+          placeholder="Share an update… supports **markdown**, `code`, and links."
         />
       ) : (
         <div className="composer-preview" aria-label="Markdown preview">
-          {text.trim() ? <Markdown text={text} /> : <p className="dim small">Nothing to preview yet.</p>}
+          {text.trim() ? <Markdown text={text} /> : <p className="muted small">Nothing to preview yet.</p>}
         </div>
       )}
 
-      <div className="row wrap">
-        <select aria-label="Room" value={room} onChange={e => setRoom(e.target.value)}>
-          {rooms.length === 0 && <option value="">No writable rooms loaded</option>}
-          {rooms.map(r => <option key={r} value={r}>{r}</option>)}
-        </select>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={alsoShare}
-            disabled={!canShare}
-            onChange={e => setAlsoShare(e.target.checked)}
-          />
-          Also share to LinkedIn
-          {share?.connected
-            ? <span className="mono dim"> · {share.postsLeftToday} of {share.postsPerDay} left today</span>
-            : <button className="linkish" type="button" onClick={connect}>connect</button>}
-        </label>
-        <span className="mono dim small">{text.length}/3000</span>
-        <button className="primary" type="button" disabled={busy || !text.trim() || !room} onClick={submit}>
+      <div className="row between wrap">
+        <div className="row wrap">
+          <select aria-label="Room" value={room} onChange={e => setRoom(e.target.value)}>
+            {rooms.length === 0 && <option value="">No writable rooms</option>}
+            {rooms.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={alsoShare}
+              disabled={!canShare}
+              onChange={e => setAlsoShare(e.target.checked)}
+            />
+            <span>LinkedIn</span>
+            {share?.connected
+              ? <span className="mono muted">({share.postsLeftToday}/{share.postsPerDay})</span>
+              : <button className="linkish xs" type="button" onClick={connect}>connect</button>}
+          </label>
+        </div>
+        <button className="primary btn-sm" type="button" disabled={busy || !text.trim() || !room} onClick={submit}>
           {busy ? 'Posting…' : 'Post'}
         </button>
       </div>
       {!share?.connected && share?.reason && <p className="fine">{share.reason}</p>}
-      {note && <p className="dim" role="status">{note}</p>}
+      {note && <p className="dim small" role="status">{note}</p>}
     </div>
   )
 }
