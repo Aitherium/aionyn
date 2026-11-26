@@ -67,12 +67,15 @@ export function mergeFeed(
       const type = (m.type as string) || 'message'
       const body = typeof m.content === 'string' ? m.content.trim() : ''
       if (type !== 'message' || !body || m.thread_id) continue
+      const replies = typeof m.reply_count === 'number' ? m.reply_count : undefined
       out.push({
         id: `${room.channel}:${String(m.id ?? out.length)}`,
         channel: room.channel,
         author: String(m.nick || ''),
         body,
         timestamp: String(m.timestamp || ''),
+        ...(m.id !== undefined && m.id !== null && m.id !== '' ? { messageId: String(m.id) } : {}),
+        ...(replies !== undefined ? { replyCount: replies } : {}),
       })
     }
   }

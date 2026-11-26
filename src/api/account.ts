@@ -108,6 +108,22 @@ export interface BillingResponse {
   invoices: { status: Section; has_more: boolean; items: InvoiceRow[] }
   portal: { status: Section; available: boolean; handoff_url: string }
 }
+/** Personal Lockbox (BYO provider keys): metadata only, the server never returns a value. */
+export interface LockboxSecret { name: string; type?: string | null; hint?: string | null; updated_at?: string | null }
+export interface LockboxResponse { available?: boolean; count?: number; secrets?: LockboxSecret[]; reason?: string | null }
+export interface LockboxStored { name: string; type?: string | null; hint?: string | null; stored: boolean }
+
+export type WalletStatus = 'ok' | 'none' | 'unavailable'
+export interface WalletResponse {
+  available: boolean
+  credits?: { status: WalletStatus; balance: number | null; unit?: string; [k: string]: unknown }
+  community?: { status: WalletStatus; earned_total: number | null; pending_settlement: number | null; [k: string]: unknown }
+  platform_credits?: { status: WalletStatus; balance: number | null; transferable?: boolean; cash_value?: boolean; [k: string]: unknown }
+}
+
+/** Env-style secret names only (OPENAI_API_KEY): what agents and World Studio read. */
+export const SECRET_NAME = /^[A-Z][A-Z0-9_]{1,63}$/
+
 export interface PortalResponse { available: boolean; reason: string | null; url: string | null; handoff_url: string }
 
 export interface PrivacyResponse {
@@ -191,6 +207,25 @@ export class AccountApi {
 
   billing() { return this.call<BillingResponse>('GET', '/billing') }
   billingPortal(returnUrl: string) { return this.call<PortalResponse>('POST', '/billing/portal', { return_url: returnUrl }) }
+
+  /** A backend without the Lockbox yet (404) reads as "not available", never as an error. */
+  lockbox() {
+    return this.call<LockboxResponse>('GET', '/lockbox').catch((e: unknown): LockboxResponse => {
+      if (e instanceof AccountError && e.status === 404) return { available: false, reason: 'The Lockbox is not available yet.' }
+      throw e
+    })
+  }
+  /** Write-only: the value goes up once and is never read back. */
+  putSecret(name: string, value: string, type = 'api_key') {
+    return this.call<LockboxStored>('PUT', `/lockbox/${encodeURIComponent(name)}`, { value, type })
+  }
+  deleteSecret(name: string) { return this.call<{ deleted: boolean }>('DELETE', `/lockbox/${encodeURIComponent(name)}`) }
+  wallet() {
+    return this.call<WalletResponse>('GET', '/wallet').catch((e: unknown) => {
+      if (e instanceof AccountError && e.status === 404) return { available: false } as WalletResponse
+      throw e
+    })
+  }
 
   privacy() { return this.call<PrivacyResponse>('GET', '/privacy') }
   savePrivacy(patch: PrivacyPatch) { return this.call<PrivacyResponse>('PATCH', '/privacy', patch) }

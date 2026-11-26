@@ -91,7 +91,7 @@ export function WelcomeView({
         </div>
       )}
       {filtered.map(item => (
-        <PostCard key={item.id} item={item} />
+        <PostCard key={item.id} item={item} social={{ signIn }} />
       ))}
     </section>
   )

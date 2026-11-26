@@ -1,0 +1,162 @@
+/* Aionyn social write path: feed excerpts, inline composer, Relay thread replies,
+   plus the Account hub Lockbox and Wallet strips. Editorial monochrome hairlines only. AGPL-3.0-only. */
+
+/* Plain-text excerpt under a post title: 14px / 1.5, secondary ink, three lines */
+.post-excerpt {
+  margin-top: 4px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.list-row .post-excerpt { margin-top: 0; }
+
+/* Optimistic rows */
+.stream-row.is-pending { opacity: 0.6; }
+.stream-row.is-pending:hover { background: transparent; }
+
+/* Inline hairline composer */
+.composer-pane {
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.composer-pane .composer-input {
+  min-height: 46px;
+  padding: 4px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1.5;
+  resize: none;
+}
+.composer-pane .composer-input:focus { border: 0; outline: none; }
+.composer-preview {
+  min-height: 46px;
+  padding: 4px 0;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.composer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.composer-opts {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-width: 0;
+}
+.composer-room {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+}
+.composer-room select { padding: 3px 8px; font-size: 12.5px; max-width: 220px; }
+.composer-bar .linkish { font-size: 12.5px; color: var(--ink-3); }
+.composer-bar .linkish:hover { color: var(--ink); }
+
+/* Relay thread replies under a post */
+.reply-thread {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.reply-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.reply-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.reply-row:last-child { border-bottom: 0; }
+.reply-row.is-pending { opacity: 0.6; }
+.reply-meta { font-size: 12.5px; color: var(--ink-3); }
+.reply-meta .post-author-name { font-size: 12.5px; }
+.reply-body { color: var(--ink); white-space: pre-wrap; }
+.reply-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.reply-form textarea { flex: 1; min-width: 0; min-height: 38px; font-size: 14px; resize: vertical; }
+.reply-note { font-size: 12.5px; color: var(--ink-3); }
+.reply-note.err { color: var(--err); }
+
+/* Account: Personal Lockbox write-only form */
+.lockbox-form {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.4fr) auto;
+  gap: 8px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.lockbox-form input { min-width: 0; }
+.lockbox-note { padding: 10px 20px 13px; border-bottom: 1px solid var(--line); font-size: 12.5px; line-height: 1.55; color: var(--ink-3); }
+
+/* Account: Wallet & Credits hairline strip */
+.wallet-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-bottom: 1px solid var(--line);
+}
+.wallet-strip > div {
+  padding: 14px 20px;
+  border-right: 1px solid var(--line);
+  min-width: 0;
+}
+.wallet-strip > div:last-child { border-right: 0; }
+.wallet-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+.wallet-value {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.wallet-value.is-muted { color: var(--ink-3); }
+.wallet-sub { display: block; margin-top: 3px; font-size: 12px; color: var(--ink-3); }
+
+@media (max-width: 600px) {
+  .lockbox-form { grid-template-columns: minmax(0, 1fr); }
+  .wallet-strip { grid-template-columns: minmax(0, 1fr); }
+  .wallet-strip > div { border-right: 0; border-bottom: 1px solid var(--line); }
+  .wallet-strip > div:last-child { border-bottom: 0; }
+  .reply-form { flex-direction: column; align-items: stretch; }
+}

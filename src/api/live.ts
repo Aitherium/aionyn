@@ -8,7 +8,7 @@
 import { mergeFeed, pickFeedChannels, plainText, profileGate, type RelayChannel } from './helpers'
 import type {
   AitherNetNodeInfo, CommunityStanding, NetworkClient, Outcome, People, Post, Profile, ProfileResult,
-  Relationship, ShareStatus, SpaceBlock, Viewer, World, WorldClient, WorldSettings,
+  Relationship, ShareStatus, SpaceBlock, ThreadReply, Viewer, World, WorldClient, WorldSettings,
 } from './types'
 import { LiveWorlds, safeLink } from './worlds-live'
 
@@ -287,6 +287,31 @@ export class LiveClient implements NetworkClient {
     const r = await this.postJson(`/api/relay/v1/channels/${encodeURIComponent(room.replace(/^#/, ''))}/messages`,
       { nick: me.username, content: text })
     return this.outcome(r, `Posted to ${room}.`)
+  }
+
+  private threadPath(room: string, messageId: string): string {
+    return `/api/relay/v1/channels/${encodeURIComponent(room.replace(/^#/, ''))}/messages/${encodeURIComponent(messageId)}/thread`
+  }
+
+  async threadReplies(room: string, messageId: string): Promise<ThreadReply[]> {
+    const r = await this.get(this.threadPath(room, messageId))
+    if (!r.ok) throw new Error(`Relay answered ${r.status}`)
+    const d = await json<{ replies?: Array<Record<string, unknown>>; messages?: Array<Record<string, unknown>> }>(r)
+    const rows = d?.replies || d?.messages || []
+    return rows
+      .filter(m => typeof m.content === 'string' && m.content.trim())
+      .map((m, i) => ({
+        id: String(m.id ?? i), author: String(m.nick || m.author || ''),
+        body: String(m.content).trim(), timestamp: String(m.timestamp || m.created_at || ''),
+      }))
+  }
+
+  async replyTo(room: string, messageId: string, text: string): Promise<Outcome> {
+    const me = await this.viewer()
+    if (!me) return { ok: false, message: 'Sign in again.' }
+    const r = await this.postJson(this.threadPath(room, messageId),
+      { channel: room.replace(/^#/, ''), nick: me.username, content: text })
+    return this.outcome(r, 'Replied.')
   }
 
   async shareStatus(): Promise<ShareStatus> {

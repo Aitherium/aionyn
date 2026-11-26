@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { ago } from '../api/helpers'
 import { OPENAW_SSO_URL, fetchPublicFeed, type PublicFeedItem } from '../api/public'
 import type { ForumBoard, ForumPost, ForumThread, NetworkClient, World } from '../api/types'
+import { previewFor } from '../api/excerpt'
 import { Markdown } from '../components/Markdown'
+import { permalinkOf } from '../components/PostActions'
 
 interface UnifiedThread extends ForumThread {
   worldSlug: string
@@ -35,6 +37,10 @@ export function ForumsView({
   const [body, setBody] = useState('')
   const [msg, setMsg] = useState('')
   const [tick, setTick] = useState(0)
+  const [copied, setCopied] = useState('')
+  const copyLink = async (id: string, url: string) => {
+    try { await navigator.clipboard.writeText(url); setCopied(id) } catch { setCopied('') }
+  }
 
   useEffect(() => {
     let live = true
@@ -210,6 +216,13 @@ export function ForumsView({
               </li>
             ))}
           </ol>
+          {!client && (
+            <div className="signin-strip">
+              <span>Sign in to reply.</span>
+              <button className="primary btn-sm" type="button" onClick={signIn}>Sign in</button>
+            </div>
+          )}
+          {client && open.thread.locked && <p className="notice-row dim">This thread is locked.</p>}
           {client && !open.thread.locked && (
             <form className="pane-section stack-sm" onSubmit={sendReply}>
               <textarea
@@ -309,7 +322,7 @@ export function ForumsView({
               {visiblePublic.map(item => (
                 <li key={item.id} className="list-row stack-xs">
                   <strong className="thread-link">{item.title || item.body.slice(0, 90)}</strong>
-                  {item.title && <p className="dim small clamp">{item.body}</p>}
+                  {item.title && previewFor(item) && <p className="post-excerpt">{previewFor(item)}</p>}
                   <p className="xs muted">
                     @{item.author}
                     {item.timestamp ? ` · ${ago(item.timestamp)}` : ''}
@@ -318,6 +331,14 @@ export function ForumsView({
                       <>
                         {' · '}
                         <a href={item.url} target="_blank" rel="noopener noreferrer">Read source ↗</a>
+                      </>
+                    )}
+                    {permalinkOf(item.url) && (
+                      <>
+                        {' · '}
+                        <button className="linkish" type="button" onClick={() => void copyLink(item.id, permalinkOf(item.url))}>
+                          {copied === item.id ? 'Link copied' : 'Copy link'}
+                        </button>
                       </>
                     )}
                   </p>

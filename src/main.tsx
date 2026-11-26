@@ -5,5 +5,6 @@ import App from './App'
 import './styles.css'
 import './styles-views.css'
 import './styles-account.css'
+import './styles-social.css'
 
 createRoot(document.getElementById('root')!).render(<StrictMode><App /></StrictMode>)

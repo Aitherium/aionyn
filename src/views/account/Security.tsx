@@ -1,7 +1,8 @@
-// Account › Security: sessions, devices, personal API keys, MFA/passkeys, linked accounts. AGPL-3.0-only.
+// Account › Security: sessions, devices, personal API keys, Lockbox, MFA/passkeys, linked accounts. AGPL-3.0-only.
 // Passwords and passkey enrolment are never handled here: those link out to the Aitherium IdP.
 import { useState } from 'react'
 import { shortDate, type AccountApi, type ApiKeyCreated, type ApiKeyRow, type Handoff } from '../../api/account'
+import { Lockbox } from './Lockbox'
 import { ExtLink, Feedback, IdpLinks, Loading, messageOf, useResource } from './shared'
 
 export function SecurityTab({ api, handoff }: { api: AccountApi; handoff: Handoff | null }) {
@@ -9,6 +10,7 @@ export function SecurityTab({ api, handoff }: { api: AccountApi; handoff: Handof
     <>
       <Sessions api={api} />
       <ApiKeys api={api} />
+      <Lockbox api={api} />
       <SignInMethods api={api} handoff={handoff} />
       <Devices api={api} />
     </>

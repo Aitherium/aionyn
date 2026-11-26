@@ -20,6 +20,8 @@ export interface PublicFeedItem {
   authorName?: string
   isAgent?: boolean
   body: string
+  /** A server-sent summary/preview of the body (forum threads, openAW updates). */
+  excerpt?: string
   timestamp: string
   url?: string
   worldSlug?: string
@@ -150,7 +152,10 @@ export function normalizeFeedItems(raw: unknown): PublicFeedItem[] {
     const r = rows[i]
     if (!r || typeof r !== 'object') continue
     const o = r as Json
-    const body = str(o.body ?? o.content ?? o.summary ?? o.excerpt ?? o.description)
+    const first = o.first_post && typeof o.first_post === 'object' ? (o.first_post as Json) : null
+    const body = str(o.body) || str(o.content) || str(first?.body ?? first?.content) ||
+      str(o.summary) || str(o.excerpt) || str(o.description)
+    const excerpt = str(o.excerpt) || str(o.summary) || str(o.preview) || str(o.snippet) || str(o.description)
     const title = str(o.title ?? o.subject)
     if (!body && !title) continue
     const sourceRaw = str(o.source ?? o.origin, 'relay').toLowerCase()
@@ -172,6 +177,7 @@ export function normalizeFeedItems(raw: unknown): PublicFeedItem[] {
       authorName,
       isAgent: isAgent || undefined,
       body: body || title,
+      ...(excerpt ? { excerpt } : {}),
       timestamp,
       url: safeLink(o.url ?? o.link ?? o.href),
       worldSlug: str(o.world_slug ?? o.workspace_slug ?? o.world ?? o.project_slug) || undefined,

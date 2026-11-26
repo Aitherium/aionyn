@@ -320,31 +320,7 @@ button:disabled:hover { background: transparent; border-color: var(--line); }
 }
 .check input { width: auto; padding: 0; accent-color: var(--ink); }
 
-/* Composer */
-.composer-pane {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.composer-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-.composer-tabs {
-  display: inline-flex;
-  gap: 14px;
-}
-.composer-preview {
-  min-height: 72px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--surface);
-}
+/* Composer, replies, excerpts: see styles-social.css */
 
 /* Profile & Space blocks */
 .profile-head {

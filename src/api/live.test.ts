@@ -45,4 +45,19 @@ describe('LiveClient', () => {
       expect((call[1].headers as Record<string, string>).Authorization).toBe('Bearer tok')
     }
   })
+
+  it('reads and writes a Relay message thread as the signed-in member', async () => {
+    const f = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === cfg.userinfoUrl) return res(200, { preferred_username: 'ada' })
+      if (init?.method === 'POST') return res(200, { reply: { id: 'r9' } })
+      return res(200, { parent_id: 'm1', replies: [{ id: 'r1', nick: 'bo', content: ' agreed ', timestamp: 't' }, { id: 'r2', content: '' }] })
+    })
+    const c = new LiveClient(cfg, f as unknown as typeof fetch)
+    expect(await c.threadReplies('#general', 'm1')).toEqual([{ id: 'r1', author: 'bo', body: 'agreed', timestamp: 't' }])
+    expect(await c.replyTo('#general', 'm1', 'me too')).toEqual({ ok: true, message: 'Replied.' })
+    const post = (f.mock.calls as unknown as [string, RequestInit][]).find(([, i]) => i?.method === 'POST')!
+    expect(post[0]).toBe('https://api.example/api/relay/v1/channels/general/messages/m1/thread')
+    expect(JSON.parse(String(post[1].body))).toEqual({ channel: 'general', nick: 'ada', content: 'me too' })
+    expect(post[1].credentials).toBe('omit')
+  })
 })
