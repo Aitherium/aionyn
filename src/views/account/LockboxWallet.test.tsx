@@ -78,6 +78,19 @@ describe('Account › Security › Personal Lockbox', () => {
     expect(container.textContent).toContain('GEMINI_API_KEY deleted.')
   })
 
+  it('deleting a name that is already gone still clears it; a vault outage says so', async () => {
+    const { container } = await security({
+      'GET /lockbox': [200, { count: 2, secrets: [{ name: 'GONE_KEY' }, { name: 'DOWN_KEY' }] }],
+      'DELETE /lockbox/GONE_KEY': [404, { detail: { error: 'not_found' } }],
+      'DELETE /lockbox/DOWN_KEY': [503, { detail: { error: 'vault_unavailable' } }],
+    })
+    const rows = () => Array.from(container.querySelectorAll('li.kv-row'))
+    await click(rows().find(li => li.textContent?.includes('GONE_KEY'))?.querySelector('button'))
+    expect(container.textContent).toContain('GONE_KEY deleted.')
+    await click(rows().find(li => li.textContent?.includes('DOWN_KEY'))?.querySelector('button'))
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('unavailable')
+  })
+
   it('a backend without the Lockbox reads as quietly unavailable, with no form', async () => {
     const { container } = await security({})
     const box = container.querySelector('section[aria-label="Personal Lockbox"]')!

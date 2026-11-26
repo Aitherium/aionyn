@@ -2,7 +2,7 @@
 // Lists names + masked hints from the server; a value is sent once and never shown again.
 // AGPL-3.0-only.
 import { useState, type FormEvent } from 'react'
-import { SECRET_NAME, shortDate, type AccountApi, type LockboxSecret } from '../../api/account'
+import { AccountError, SECRET_NAME, shortDate, type AccountApi, type LockboxSecret } from '../../api/account'
 import { Feedback, Loading, messageOf, useResource } from './shared'
 
 const PRESETS = ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'GEMINI_API_KEY'] as const
@@ -45,7 +45,8 @@ export function Lockbox({ api }: { api: AccountApi }) {
   const remove = async (n: string) => {
     setBusy(n); setOk(''); setErr('')
     try {
-      await api.deleteSecret(n)
+      // A name already gone (404) is the outcome the member asked for.
+      await api.deleteSecret(n).catch((e2: unknown) => { if (!(e2 instanceof AccountError && e2.status === 404)) throw e2 })
       setOk(`${n} deleted.`)
       res.setData(d => d ? { ...d, count: Math.max(0, (d.count ?? 1) - 1), secrets: (d.secrets || []).filter(s => s.name !== n) } : d)
       await res.reload()
