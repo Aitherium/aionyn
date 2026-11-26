@@ -31,7 +31,7 @@ export interface ProfileAction {
 /** The ONE button a profile shows, from the relationship the server reported. */
 export function profileAction(rel: Relationship): ProfileAction {
   switch (rel) {
-    case 'self': return { kind: 'edit', label: 'Edit your Space' }
+    case 'self': return { kind: 'edit', label: 'Edit profile' }
     case 'friends': return { kind: 'message', label: 'Message' }
     case 'request_received': return { kind: 'accept', label: 'Accept' }
     case 'request_sent': return { kind: 'pending', label: 'Requested' }

@@ -36,3 +36,25 @@ describe('ProfileView copy link', () => {
     document.body.removeChild(container)
   })
 })
+
+describe('ProfileView edit (own profile)', () => {
+  it('routes "Edit profile" to the inline Account hub instead of another app', async () => {
+    const sample = new SampleClient()
+    const client = Object.assign(Object.create(Object.getPrototypeOf(sample)), sample, { mode: 'live' }) as SampleClient
+    const go = vi.fn()
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null)
+    const container = document.createElement('div')
+    document.body.appendChild(container)
+    const root = createRoot(container)
+    await act(async () => { root.render(<ProfileView client={client} username="rowan" go={go} me="rowan" />) })
+    await act(async () => { await new Promise(r => setTimeout(r, 50)) })
+    const btn = Array.from(container.querySelectorAll('button')).find(b => b.textContent === 'Edit profile')
+    expect(btn).toBeTruthy()
+    await act(async () => { btn!.click() })
+    expect(go).toHaveBeenCalledWith('#/account/profile')
+    expect(open).not.toHaveBeenCalled()
+    open.mockRestore()
+    act(() => { root.unmount() })
+    document.body.removeChild(container)
+  })
+})

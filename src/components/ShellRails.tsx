@@ -13,7 +13,7 @@ export const PRIMARY_NAV = [
   ['#/spaces', 'Spaces', '/spaces'],
   ['#/messages', 'Messages', '/messages'],
   ['#/network', 'AitherNet', '/network'],
-  ['#/vault', 'Vault', '/vault'],
+  ['#/account', 'Account', '/account'],
 ] as const
 
 export const ECOSYSTEM_LINKS = [
@@ -45,6 +45,7 @@ export function LeftRail({
     if (match === '/') return route === '/'
     if (match === '/worlds') return route === '/worlds' || route.startsWith('/worlds/') || route.startsWith('/w/')
     if (match === '/spaces') return route === '/spaces' || route.startsWith('/u/')
+    if (match === '/account') return route === '/account' || route.startsWith('/account/') || route === '/vault'
     return route === match
   }
 

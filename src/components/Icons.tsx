@@ -82,6 +82,7 @@ export function NavIcon({ name }: { name: string }) {
           <path d="M3 12h4l3-7 4 14 3-7h4" />
         </Svg>
       )
+    case '/account':
     case '/vault':
       return (
         <Svg>

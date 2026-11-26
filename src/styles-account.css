@@ -1,0 +1,119 @@
+/* Aionyn Account hub: flat hairline key/value rows, inline forms, tables, one-time secrets. AGPL-3.0-only. */
+
+.account-header .tab-bar { flex: 1; justify-content: flex-end; }
+
+/* Label / value / action hairline row */
+.kv-row {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+}
+.kv-row > .kv-label {
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.kv-row > .kv-value { min-width: 0; color: var(--ink); overflow-wrap: anywhere; }
+.kv-row > .kv-action { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+.kv-sub { display: block; margin-top: 2px; font-size: 12px; color: var(--ink-3); }
+
+/* Inline hairline form */
+.form-row {
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.form-row > label,
+.form-row > .form-label {
+  padding-top: 8px;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.form-row input,
+.form-row select,
+.form-row textarea { width: 100%; }
+.form-row .hint { margin-top: 5px; font-size: 12px; color: var(--ink-3); }
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 13px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* Editable link rows */
+.link-edit {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) auto;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* Hairline data table */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.data-table th {
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  text-align: left;
+  white-space: nowrap;
+}
+.data-table td {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  vertical-align: baseline;
+}
+.data-table td.num,
+.data-table th.num { text-align: right; }
+.data-table .mono,
+.data-table td.num { font-variant-numeric: tabular-nums; }
+.table-scroll { overflow-x: auto; }
+
+/* One-time secret (raw API key shown once) */
+.secret-row {
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.secret-value {
+  display: block;
+  padding: 9px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  font: 12.5px/1.45 var(--mono);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.tnum-mono { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.section-bar .tnum-mono { font-size: 11.5px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+@media (max-width: 600px) {
+  .kv-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .kv-row > .kv-label { grid-column: 1 / -1; }
+  .form-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .form-row > label, .form-row > .form-label { padding-top: 0; }
+  .link-edit { grid-template-columns: minmax(0, 1fr); }
+}
+
+.status-dot.inline { display: inline-block; margin-right: 7px; vertical-align: 1px; }
