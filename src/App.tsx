@@ -268,7 +268,7 @@ export default function App() {
 
     if (route === '/') {
       return client
-        ? <FeedView client={client} apiBase={API_BASE} />
+        ? <FeedView client={client} apiBase={API_BASE} me={viewer?.username || ''} signIn={signIn} />
         : <WelcomeView signIn={signIn} apiBase={API_BASE} />
     }
 

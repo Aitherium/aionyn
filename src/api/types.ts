@@ -98,7 +98,14 @@ export interface Post {
   author: string
   body: string
   timestamp: string
+  /** The Relay message id (thread replies post under it). */
+  messageId?: string
+  /** Replies in this message's Relay thread, when the server reports it. */
+  replyCount?: number
 }
+
+/** One reply in a Relay message thread. */
+export interface ThreadReply { id: string; author: string; body: string; timestamp: string }
 
 /**
  * A world: a community you belong to. It IS one AitherRelay workspace (its channels plus
@@ -168,6 +175,10 @@ export interface NetworkClient {
   shareConnectUrl(): Promise<Outcome & { url?: string }>
   /** One post to the member's own LinkedIn; the server enforces the daily cap. */
   shareToLinkedIn(text: string, url: string): Promise<Outcome>
+  /** The replies under one Relay message (its thread). */
+  threadReplies?(room: string, messageId: string): Promise<ThreadReply[]>
+  /** Reply in one Relay message's thread, as the signed-in member. */
+  replyTo?(room: string, messageId: string, text: string): Promise<Outcome>
 }
 
 export interface Outcome { ok: boolean; message: string }

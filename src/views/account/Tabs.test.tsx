@@ -37,7 +37,8 @@ const DEVICES = { status: 'linked', count: 1, devices: [{ name: 'node-1', kind: 
 function securityRoutes(extra: Record<string, Parameters<typeof routeFetch>[0][string]> = {}) {
   return routeFetch({
     'GET /handoff': [200, HANDOFF], 'GET /sessions': [200, SESSIONS], 'GET /api-keys': [200, KEYS],
-    'GET /security': [200, SECURITY], 'GET /devices': [200, DEVICES], ...extra,
+    'GET /security': [200, SECURITY], 'GET /devices': [200, DEVICES],
+    'GET /lockbox': [200, { available: true, count: 0, secrets: [] }], ...extra,
   })
 }
 
@@ -54,7 +55,9 @@ describe('Account › Security', () => {
     expect(t).toMatch(/GitHub\s*Linked/)
     expect(container.innerHTML).toContain(HANDOFF.urls.discord_link)
     expect(container.innerHTML).toContain(HANDOFF.urls.password_change)
-    expect(container.querySelector('input[type="password"]')).toBeNull()
+    // Passwords are never handled here; the only masked input is the write-only Lockbox value.
+    expect(container.querySelectorAll('input[type="password"]')).toHaveLength(1)
+    expect(container.querySelector('input[type="password"]')?.getAttribute('aria-label')).toBe('Secret value')
   })
 
   it('revokes one session and all other sessions', async () => {
@@ -153,7 +156,7 @@ describe('Account › Billing & Packs', () => {
   })
 
   it('a billing failure shows one error row and keeps the actions', async () => {
-    const { container } = await render('billing', routeFetch({ 'GET /billing': [500, {}] }))
+    const { container } = await render('billing', routeFetch({ 'GET /billing': [500, {}], 'GET /wallet': [200, { available: false }] }))
     expect(container.querySelectorAll('[role="alert"]')).toHaveLength(1)
     expect(button(container, 'Manage billing ↗')).toBeTruthy()
   })

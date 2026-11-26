@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { SHOP_PACKS_URL, money, safeHttps, shortDate, type AccountApi } from '../../api/account'
 import { ExtLink, Feedback, Loading, messageOf, useResource } from './shared'
+import { WalletStrip } from './Wallet'
 
 const PORTAL_RETURN_ORIGINS = ['https://aionyn.aitherium.com', 'https://aionyn.com', 'https://www.aionyn.com']
 
@@ -55,6 +56,7 @@ export function BillingTab({ api, open = (u: string) => window.location.assign(u
       <>
         <Feedback err={res.err || 'Could not load billing.'} />
         {actions}
+        <WalletStrip api={api} />
       </>
     )
   }
@@ -94,6 +96,7 @@ export function BillingTab({ api, open = (u: string) => window.location.assign(u
       )}
       {actions}
       <Feedback ok={note} err={err} />
+      <WalletStrip api={api} />
 
       <div className="section-bar"><span>Packs & entitlements{packs.length ? <span className="tnum"> · {packs.length}</span> : null}</span></div>
       {b.packs.status !== 'ok' && <div className="empty-state">Your packs are not available right now.</div>}

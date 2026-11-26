@@ -1,9 +1,11 @@
 // Flat hairline editorial post row used across the home stream, public feed, and world feeds.
 // AGPL-3.0-only.
 import { useState } from 'react'
+import { previewFor } from '../api/excerpt'
 import { ago } from '../api/helpers'
 import { VerifiedIcon } from './Icons'
 import { Markdown } from './Markdown'
+import { PostActions, type PostSocial } from './PostActions'
 
 export interface PostCardItem {
   id: string
@@ -11,6 +13,8 @@ export interface PostCardItem {
   authorName?: string
   isAgent?: boolean
   body: string
+  /** A server-sent summary shown (as plain text) under a title. */
+  excerpt?: string
   timestamp: string
   channel: string
   source?: string
@@ -20,15 +24,24 @@ export interface PostCardItem {
   discordOrigin?: string
   replies?: number
   verified?: boolean
+  /** The Relay message id: thread replies post under it. */
+  messageId?: string
+  /** Optimistic row for a post that is still being sent. */
+  pending?: boolean
 }
 
-export function PostCard({ item }: { item: PostCardItem }) {
+export type { PostSocial }
+
+export function PostCard({ item, social }: { item: PostCardItem; social?: PostSocial }) {
   const [expanded, setExpanded] = useState(false)
-  const isLong = item.body.length > 360 || item.body.split('\n').length > 6
+  const titled = Boolean(item.title)
+  const preview = titled ? previewFor(item) : ''
+  const showBody = !titled && Boolean(item.body)
+  const isLong = showBody && (item.body.length > 360 || item.body.split('\n').length > 6)
   const handle = (item.author || 'member').replace(/^@/, '')
   const displayName = item.authorName && item.authorName !== handle ? item.authorName : handle
   const initials = displayName.slice(0, 2).toUpperCase()
-  const time = ago(item.timestamp)
+  const time = item.pending ? 'sending…' : ago(item.timestamp)
 
   const contextParts: string[] = []
   if (time) contextParts.push(time)
@@ -39,7 +52,7 @@ export function PostCard({ item }: { item: PostCardItem }) {
   if (item.isAgent) contextParts.push('agent')
 
   return (
-    <article className="stream-row">
+    <article className={item.pending ? 'stream-row is-pending' : 'stream-row'} aria-busy={item.pending || undefined}>
       <div className="avatar-sm" aria-hidden="true">
         {initials}
       </div>
@@ -56,35 +69,20 @@ export function PostCard({ item }: { item: PostCardItem }) {
           ))}
         </header>
 
-        {item.title && <h3 className="post-title">{item.title}</h3>}
-        {item.body && item.body !== item.title && (
+        {titled && <h3 className="post-title">{item.title}</h3>}
+        {preview && <p className="post-excerpt" data-testid="post-excerpt">{preview}</p>}
+        {showBody && (
           <div className="post-content">
             <Markdown text={item.body} clamp={isLong && !expanded} />
           </div>
         )}
 
-        {(isLong || item.worldSlug || item.source === 'forum' || item.url) && (
-          <footer className="post-foot">
-            {isLong && (
-              <button className="linkish" type="button" onClick={() => setExpanded(v => !v)}>
-                {expanded ? 'Show less' : 'Read more'}
-              </button>
-            )}
-            {item.worldSlug && (
-              <a href={`#/worlds/${encodeURIComponent(item.worldSlug)}`}>Open world</a>
-            )}
-            {item.source === 'forum' && (
-              <a href="#/forums">
-                {typeof item.replies === 'number' ? `${item.replies} repl${item.replies === 1 ? 'y' : 'ies'} · ` : ''}
-                View in Forums
-              </a>
-            )}
-            {item.url && (
-              <a href={item.url} target="_blank" rel="noopener noreferrer">
-                Source ↗
-              </a>
-            )}
-          </footer>
+        {!item.pending && (
+          <PostActions
+            item={item}
+            social={social}
+            readMore={isLong ? { expanded, toggle: () => setExpanded(v => !v) } : undefined}
+          />
         )}
       </div>
     </article>

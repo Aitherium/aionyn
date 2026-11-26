@@ -3,7 +3,8 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { ago } from '../api/helpers'
 import type { ForumBoard, ForumPost, ForumThread, WorldClient } from '../api/types'
 
-export function Forum({ client, slug, refresh }: { client: WorldClient; slug: string; refresh: number }) {
+export function Forum({ client, slug, refresh, me = '' }: { client: WorldClient; slug: string; refresh: number; me?: string }) {
+  const [sending, setSending] = useState(false)
   const [boards, setBoards] = useState<ForumBoard[]>([])
   const [board, setBoard] = useState('')
   const [threads, setThreads] = useState<ForumThread[] | null>(null)
@@ -38,10 +39,21 @@ export function Forum({ client, slug, refresh }: { client: WorldClient; slug: st
   }
   const send = async (e: FormEvent) => {
     e.preventDefault()
-    if (!open) return
-    const r = await client.reply(slug, open.thread.id, reply.trim())
-    setMsg(r.message)
-    if (r.ok) { setReply(''); openThread(open.thread.id); setTick(n => n + 1) }
+    if (!open || sending) return
+    const body = reply.trim()
+    // Optimistic: the reply shows at once and is replaced by the server's thread on success.
+    const prev = open
+    setSending(true); setReply('')
+    setOpen({ ...open, posts: [...open.posts, { id: `pending-${Date.now()}`, author: me || 'you', body, createdAt: new Date().toISOString(), agent: false }] })
+    try {
+      const r = await client.reply(slug, open.thread.id, body)
+      setMsg(r.message)
+      if (r.ok) { openThread(open.thread.id); setTick(n => n + 1) } else { setOpen(prev); setReply(body) }
+    } catch {
+      setOpen(prev); setReply(body); setMsg('Could not send the reply.')
+    } finally {
+      setSending(false)
+    }
   }
   useEffect(() => { if (open && refresh) openThread(open.thread.id) }, [refresh]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -105,10 +117,11 @@ export function Forum({ client, slug, refresh }: { client: WorldClient; slug: st
               </li>
             ))}
           </ol>
+          {open.thread.locked && <p className="notice-row dim">This thread is locked.</p>}
           {!open.thread.locked && (
             <form className="pane-section stack-sm" onSubmit={send}>
               <textarea aria-label="Your reply" rows={3} value={reply} onChange={e => setReply(e.target.value)} />
-              <div><button className="primary btn-sm" type="submit" disabled={!reply.trim()}>Post reply</button></div>
+              <div><button className="primary btn-sm" type="submit" disabled={!reply.trim() || sending}>{sending ? 'Sending…' : 'Post reply'}</button></div>
             </form>
           )}
         </article>

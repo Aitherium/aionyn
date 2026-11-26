@@ -4,14 +4,14 @@ import { cleanHandle } from '../api/helpers'
 import { fetchPublicFeed, type PublicFeedItem } from '../api/public'
 import type { NetworkClient, People, Post } from '../api/types'
 import { PostCard, type PostCardItem } from '../components/PostCard'
-import { Composer } from './Composer'
+import { Composer, type PendingPost } from './Composer'
 
 function useLoad<T>(load: () => Promise<T>, deps: unknown[]): { data: T | null; err: string } {
   const [data, setData] = useState<T | null>(null)
   const [err, setErr] = useState('')
   useEffect(() => {
     let live = true
-    setData(null); setErr('')
+    setErr('')   // keep the last answer on screen while a refresh is in flight
     load().then(d => { if (live) setData(d) })
       .catch((e: unknown) => { if (live) setErr(e instanceof Error ? e.message : 'Could not load.') })
     return () => { live = false }
@@ -22,8 +22,16 @@ function useLoad<T>(load: () => Promise<T>, deps: unknown[]): { data: T | null; 
 
 type FeedScope = 'all' | 'rooms' | 'public'
 
-export function FeedView({ client, apiBase }: { client: NetworkClient; apiBase?: string }) {
+/** One conversation key: the same Relay line seen through the member feed and the public feed. */
+function sameLine(p: { channel: string; author: string; body: string }): string {
+  return `${p.channel.replace(/^#/, '').toLowerCase()}|${p.author.replace(/^@/, '').toLowerCase()}|${p.body.trim().slice(0, 120)}`
+}
+
+export function FeedView({ client, apiBase, me = '', signIn }: {
+  client: NetworkClient; apiBase?: string; me?: string; signIn?: () => void
+}) {
   const [reload, setReload] = useState(0)
+  const [pending, setPending] = useState<PostCardItem | null>(null)
   const [scope, setScope] = useState<FeedScope>('all')
   const { data, err } = useLoad<Post[]>(() => client.feed(), [client, reload])
   const [pubItems, setPubItems] = useState<PublicFeedItem[]>([])
@@ -35,6 +43,15 @@ export function FeedView({ client, apiBase }: { client: NetworkClient; apiBase?:
     return () => { live = false }
   }, [apiBase, reload])
 
+  // The optimistic row stays until the refreshed feed answers (or the post fails).
+  useEffect(() => { setPending(null) }, [data])
+  const posting = ({ room, text }: PendingPost) => setPending({
+    id: `pending:${Date.now()}`, author: me || 'you', body: text, timestamp: new Date().toISOString(),
+    channel: room, source: 'relay', pending: true,
+  })
+  const posted = (ok: boolean) => { if (ok) setReload(n => n + 1); else setPending(null) }
+  const social = useMemo(() => ({ client, me, signIn }), [client, me, signIn])
+
   const rooms = useMemo(() => [...new Set((data || []).map(p => p.channel))], [data])
 
   const combined = useMemo<PostCardItem[]>(() => {
@@ -45,13 +62,15 @@ export function FeedView({ client, apiBase }: { client: NetworkClient; apiBase?:
       timestamp: p.timestamp,
       channel: p.channel,
       source: 'relay',
+      ...(p.messageId ? { messageId: p.messageId } : {}),
+      ...(typeof p.replyCount === 'number' ? { replies: p.replyCount } : {}),
     }))
     if (scope === 'rooms') return memberPosts
     if (scope === 'public') return pubItems
-    const seen = new Set(memberPosts.map(p => p.id))
+    const seen = new Set(memberPosts.flatMap(p => [p.id, sameLine(p)]))
     const merged = [...memberPosts]
     for (const p of pubItems) {
-      if (!seen.has(p.id)) merged.push(p)
+      if (!seen.has(p.id) && !seen.has(sameLine(p))) merged.push(p)
     }
     return merged.sort((a, b) => (a.timestamp < b.timestamp ? 1 : a.timestamp > b.timestamp ? -1 : 0))
   }, [data, pubItems, scope])
@@ -83,7 +102,8 @@ export function FeedView({ client, apiBase }: { client: NetworkClient; apiBase?:
         </button>
       </header>
 
-      <Composer client={client} rooms={rooms} onPosted={() => setReload(n => n + 1)} />
+      <Composer client={client} rooms={rooms} onPosting={posting} onPosted={posted} />
+      {pending && scope !== 'public' && <PostCard item={pending} />}
 
       {err && <p className="notice-row err" role="alert">{err}</p>}
       {!data && !err && <div className="empty-state">Loading your rooms…</div>}
@@ -91,7 +111,7 @@ export function FeedView({ client, apiBase }: { client: NetworkClient; apiBase?:
         <div className="empty-state">Nothing yet in the rooms you can read. Join a World or post above.</div>
       )}
       {combined.map(item => (
-        <PostCard key={item.id} item={item} />
+        <PostCard key={item.id} item={item} social={social} />
       ))}
     </section>
   )

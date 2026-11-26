@@ -46,7 +46,7 @@ function WorldFeed({ client, channels, slug }: { client: NetworkClient; channels
 
   return (
     <div className="stack">
-      <Composer client={client} rooms={channels} onPosted={() => setTick(n => n + 1)} />
+      <Composer client={client} rooms={channels} onPosted={ok => { if (ok) setTick(n => n + 1) }} />
       <div className="section-bar">
         <span>Relay Channels</span>
         <button className="linkish xs" type="button" onClick={() => setTick(n => n + 1)}>Refresh</button>
@@ -245,7 +245,7 @@ export function WorldView({
 
       {tab === 'feed' && <WorldFeed client={client} channels={world.channels} slug={world.slug} />}
       {tab === 'chat' && <Chat client={client} channels={world.channels} />}
-      {tab === 'forum' && <Forum client={client.world} slug={world.slug} refresh={tick} />}
+      {tab === 'forum' && <Forum client={client.world} slug={world.slug} refresh={tick} me={me} />}
       {tab === 'workspace' && (
         <div className="stack">
           <section className="pane-section stack-sm" aria-label="Workspace and Discord bridge">
