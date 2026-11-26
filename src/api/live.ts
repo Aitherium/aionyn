@@ -7,10 +7,10 @@
 // never a cached card, a directory row or a guess.
 import { mergeFeed, pickFeedChannels, plainText, profileGate, type RelayChannel } from './helpers'
 import type {
-  CommunityStanding, NetworkClient, Outcome, People, Post, Profile, ProfileResult,
-  Relationship, ShareStatus, Viewer, World, WorldClient, WorldSettings,
+  AitherNetNodeInfo, CommunityStanding, NetworkClient, Outcome, People, Post, Profile, ProfileResult,
+  Relationship, ShareStatus, SpaceBlock, Viewer, World, WorldClient, WorldSettings,
 } from './types'
-import { LiveWorlds } from './worlds-live'
+import { LiveWorlds, safeLink } from './worlds-live'
 
 export interface LiveConfig {
   apiBase: string        // https://api.aitherium.com
@@ -29,6 +29,7 @@ interface StandingBody {
   github?: { login: string; url: string; verified?: boolean } | null
   connections?: { count: number; people: { username: string; display_name: string }[] }
   relationship?: Relationship
+  aithernet?: { status?: string; label?: string; models?: string[] } | null
   community?: {
     available?: boolean; reason?: string; reputation?: number; level?: number; xp?: number
     shipped_count?: number; project_count?: number
@@ -37,6 +38,43 @@ interface StandingBody {
 }
 
 type Block = { type?: string; config?: Record<string, unknown> }
+
+function parseSpaceBlocks(blocks: Block[]): { extra: SpaceBlock[]; node: AitherNetNodeInfo | null } {
+  const extra: SpaceBlock[] = []
+  let node: AitherNetNodeInfo | null = null
+  for (const b of blocks) {
+    if (!b || !b.type || b.type === 'bio' || b.type === 'mood') continue
+    const cfg = b.config || {}
+    if (b.type === 'aithernet' || b.type === 'node') {
+      const status = typeof cfg.status === 'string' ? cfg.status : 'linked'
+      const label = typeof cfg.label === 'string' ? cfg.label : typeof cfg.name === 'string' ? cfg.name : undefined
+      const models = Array.isArray(cfg.models) ? cfg.models.filter((m): m is string => typeof m === 'string') : undefined
+      node = { status, label, models }
+      continue
+    }
+    const title = typeof cfg.title === 'string' ? cfg.title : b.type
+    const rawItems = Array.isArray(cfg.items) ? cfg.items : Array.isArray(cfg.links) ? cfg.links : []
+    const items = rawItems
+      .map(it => {
+        if (typeof it === 'string') return { label: it }
+        if (it && typeof it === 'object') {
+          const o = it as Record<string, unknown>
+          const label = typeof o.label === 'string' ? o.label : typeof o.title === 'string' ? o.title : typeof o.name === 'string' ? o.name : ''
+          if (!label) return null
+          return {
+            label,
+            url: safeLink(o.url ?? o.href),
+            detail: typeof o.description === 'string' ? o.description : typeof o.detail === 'string' ? o.detail : undefined,
+          }
+        }
+        return null
+      })
+      .filter((x): x is { label: string; url?: string; detail?: string } => Boolean(x))
+    const text = plainText(cfg.html ?? cfg.text ?? cfg.content ?? '', 400)
+    if (items.length || text) extra.push({ type: b.type, title, text: text || undefined, items: items.length ? items : undefined })
+  }
+  return { extra, node }
+}
 
 function community(c: StandingBody['community']): CommunityStanding {
   if (!c || !c.available) return { available: false, reason: c?.reason, badges: [] }
@@ -61,6 +99,10 @@ export function toProfile(username: string, config: unknown, st: StandingBody | 
   const name = typeof c.display_name === 'string' && c.display_name.trim()
     ? c.display_name.trim() : (st?.display_name || username)
   const gh = st?.github
+  const { extra, node } = parseSpaceBlocks(blocks)
+  const stNode = st?.aithernet
+    ? { status: st.aithernet.status || 'online', label: st.aithernet.label, models: st.aithernet.models }
+    : node
   return {
     username,
     displayName: name,
@@ -78,25 +120,41 @@ export function toProfile(username: string, config: unknown, st: StandingBody | 
         .map(p => ({ username: p.username, displayName: p.display_name || p.username })),
     },
     relationship: st?.relationship || 'none',
+    ...(extra.length ? { blocks: extra } : {}),
+    ...(stNode ? { aithernetNode: stNode } : {}),
   }
 }
 
 type WorldRow = { workspace_id?: string; slug?: string; name: string; role: string;
-  discord?: { name: string }[] }
+  description?: string; workspace_url?: string;
+  discord?: { name: string; invite_url?: string; bridged_channels?: string[] }[] }
 
 /** The member's worlds: their workspaces (with Discord) joined with their Relay workspaces by slug. */
 export function mergeWorlds(rows: WorldRow[], relay: Array<{ id?: string; slug: string; name: string; role: string;
-  member_count?: number; world?: WorldSettings }>): World[] {
+  member_count?: number; description?: string; world?: WorldSettings }>): World[] {
   const out = new Map<string, World>()
   for (const p of rows) {
     const slug = p.slug || p.workspace_id || ''
-    out.set(slug, { id: p.workspace_id || slug, slug, name: p.name, role: p.role,
-      discord: (p.discord || []).map(d => d.name) })
+    const invite = p.discord?.map(d => safeLink(d.invite_url)).find(Boolean)
+    const bridged = p.discord?.flatMap(d => d.bridged_channels || []).filter(Boolean)
+    const w: World = {
+      id: p.workspace_id || slug, slug, name: p.name, role: p.role,
+      discord: (p.discord || []).map(d => d.name),
+    }
+    if (p.description) w.description = p.description
+    if (invite) w.discordInvite = invite
+    if (bridged && bridged.length) w.bridgedChannels = bridged
+    if (safeLink(p.workspace_url)) w.workspaceUrl = safeLink(p.workspace_url)
+    out.set(slug, w)
   }
   for (const w of relay) {
     const known = out.get(w.slug)
-    out.set(w.slug, { ...(known || { id: w.id || w.slug, slug: w.slug, name: w.name, role: w.role, discord: [] }),
-      members: w.member_count, settings: w.world })
+    const merged: World = {
+      ...(known || { id: w.id || w.slug, slug: w.slug, name: w.name, role: w.role, discord: [] }),
+      members: w.member_count, settings: w.world,
+    }
+    if (!merged.description && w.description) merged.description = w.description
+    out.set(w.slug, merged)
   }
   return [...out.values()]
 }

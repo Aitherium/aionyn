@@ -55,6 +55,19 @@ export interface CommunityStanding {
 export type Relationship =
   | 'self' | 'friends' | 'request_sent' | 'request_received' | 'none' | 'anonymous'
 
+export interface SpaceBlock {
+  type: string
+  title?: string
+  text?: string
+  items?: Array<{ label: string; url?: string; detail?: string }>
+}
+
+export interface AitherNetNodeInfo {
+  status: string
+  label?: string
+  models?: string[]
+}
+
 export interface Profile {
   username: string
   displayName: string
@@ -67,6 +80,8 @@ export interface Profile {
   community: CommunityStanding
   connections: { count: number; people: Person[] }
   relationship: Relationship
+  blocks?: SpaceBlock[]
+  aithernetNode?: AitherNetNodeInfo | null
 }
 
 /** What the server let this viewer see. A gate other than `ok` shows NOTHING else. */
@@ -92,13 +107,17 @@ export interface Post {
  */
 export interface World {
   id: string
-  /** The Relay workspace slug: the world's address (`#/w/<slug>`). */
+  /** The Relay workspace slug: the world's address (`#/worlds/<slug>` or `#/w/<slug>`). */
   slug: string
   name: string
   role: string
   discord: string[]
   members?: number
   settings?: WorldSettings
+  description?: string
+  discordInvite?: string
+  bridgedChannels?: string[]
+  workspaceUrl?: string
 }
 
 /** @deprecated The pre-2026-11-15 name of {@link World}; kept for one release. */
@@ -212,6 +231,14 @@ export interface OsintResult {
   error?: string
 }
 
+export interface DirectMessage {
+  id: string
+  from: string
+  to: string
+  body: string
+  timestamp: string
+}
+
 /** A world's rooms, forum and OSINT panel, as the signed-in member. */
 export interface WorldClient {
   create(name: string, slug: string): Promise<Outcome & { slug?: string }>
@@ -228,4 +255,6 @@ export interface WorldClient {
   osint(kind: 'news' | 'telemetry', query: string): Promise<OsintResult>
   /** A Relay direct message to one member. */
   message(to: string, text: string): Promise<Outcome>
+  /** Recent Relay direct messages involving the signed-in member. */
+  dms?(): Promise<DirectMessage[]>
 }

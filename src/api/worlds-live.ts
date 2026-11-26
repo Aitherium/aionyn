@@ -10,7 +10,7 @@
 // OSINT comes from the platform's public read door (`/api/osint/news|telemetry`), which
 // holds the ShadowBroker board's signing secret on the server. This page never sees it.
 import type {
-  ChatLine, ForumBoard, ForumPost, ForumThread, OsintItem, OsintResult, Outcome, WorldClient,
+  ChatLine, DirectMessage, ForumBoard, ForumPost, ForumThread, OsintItem, OsintResult, Outcome, WorldClient,
   WorldDetail, WorldSettings,
 } from './types'
 
@@ -173,6 +173,9 @@ export class LiveWorlds implements WorldClient {
     const q = query.trim()
     const r = await this.f(`${this.apiBase}/api/osint/${kind}?q=${encodeURIComponent(q)}&limit=${kind === 'news' ? 8 : 25}`,
       { credentials: 'omit', headers: { Accept: 'application/json' } })
+    if (r.status === 503) {
+      return { query: q, items: [], notice: '', ...OSINT_DEFAULTS, error: 'OSINT feed is temporarily unavailable (503).' }
+    }
     if (!r.ok) return { query: q, items: [], notice: '', ...OSINT_DEFAULTS, error: await reason(r) }
     const d = await body<{ results?: Json[]; notice?: string; source?: Json }>(r)
     const src = d?.source || {}
@@ -186,5 +189,24 @@ export class LiveWorlds implements WorldClient {
   async message(to: string, text: string): Promise<Outcome> {
     const r = await this.call('/api/relay/v1/dms', { method: 'POST', body: JSON.stringify({ to_nick: to, content: text }) })
     return r.ok ? { ok: true, message: `Sent to @${to}.` } : { ok: false, message: await reason(r) }
+  }
+
+  async dms(): Promise<DirectMessage[]> {
+    const r = await this.call('/api/relay/v1/dms?limit=40')
+    if (!r.ok) {
+      if (r.status === 404) return []
+      throw new Error(await reason(r))
+    }
+    const d = await body<{ dms?: Json[]; messages?: Json[] }>(r)
+    const rows = d?.dms || d?.messages || []
+    return rows
+      .filter(m => m && typeof m === 'object' && typeof (m.content ?? m.body) === 'string')
+      .map((m, i) => ({
+        id: String(m.id ?? i),
+        from: String(m.from_nick ?? m.from ?? m.nick ?? m.sender ?? ''),
+        to: String(m.to_nick ?? m.to ?? m.recipient ?? ''),
+        body: String(m.content ?? m.body ?? ''),
+        timestamp: String(m.timestamp ?? m.created_at ?? ''),
+      }))
   }
 }

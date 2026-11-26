@@ -1,9 +1,11 @@
-// A member's profile: earned standing, proved identity, connections. AGPL-3.0-only.
+// A member's profile: Space blocks, earned standing, proved identity, AitherNet node, connections.
+// AGPL-3.0-only.
 import { useEffect, useState } from 'react'
 import { profileAction } from '../api/helpers'
 import { loadImport } from './Import'
 import type { NetworkClient, Profile as P, ProfileResult } from '../api/types'
 import { Copilot, PROFILE_PLACE } from '../copilot/Copilot'
+import { avatarTone } from '../components/PostCard'
 
 const GATE_TEXT: Record<string, string> = {
   private: 'This profile is private.',
@@ -31,13 +33,16 @@ export function ProfileView({ client, username, go, me = '' }: {
   if (res.gate !== 'ok') return <p className="gate" role="status">{GATE_TEXT[res.gate]}</p>
   const p = res.profile
   const action = profileAction(p.relationship)
+  const spacePublicUrl = `https://aitherium.com/spaces/${encodeURIComponent(p.username)}`
+  const spaceEditUrl = `https://app.aitherium.com/spaces/${encodeURIComponent(p.username)}`
+
   const act = async () => {
     if (action.kind === 'connect' || action.kind === 'accept') {
       const r = await client.connect(p.username)
       setNote(r.message)
-    } else if (action.kind === 'message') go('#/messages')
+    } else if (action.kind === 'message') go(`#/messages?to=${encodeURIComponent(p.username)}`)
     else if (action.kind === 'edit' && client.mode === 'sample') setNote('This is a sample profile. Sign in to edit yours.')
-    else if (action.kind === 'edit') window.open('https://app.aitherium.com/spaces/' + encodeURIComponent(p.username), '_blank', 'noopener')
+    else if (action.kind === 'edit') window.open(spaceEditUrl, '_blank', 'noopener')
   }
   const copyLink = async () => {
     const url = `https://aionyn.aitherium.com/#/u/${encodeURIComponent(p.username)}`
@@ -52,20 +57,68 @@ export function ProfileView({ client, username, go, me = '' }: {
   return (
     <article className="stack" aria-label={`Profile of ${p.displayName}`}>
       <header className="card hero">
-        <div className="avatar" aria-hidden>{p.displayName.slice(0, 1)}</div>
+        <div className="avatar" style={{ background: avatarTone(p.username) }} aria-hidden>
+          {p.displayName.slice(0, 1).toUpperCase()}
+        </div>
         <div className="grow">
-          <h1>{p.displayName}</h1>
+          <div className="row wrap">
+            <h1>{p.displayName}</h1>
+            {p.github?.verified && <span className="pill ok">verified</span>}
+            {p.aithernetNode && <span className="pill accent">AitherNet · {p.aithernetNode.status}</span>}
+          </div>
           <p className="mono dim">@{p.username}</p>
           {p.headline && <p>{p.headline}</p>}
         </div>
-        <button className="primary" onClick={act} disabled={action.kind === 'pending' || action.kind === 'signin'}>
-          {action.label}
-        </button>
-        <button className="link" onClick={copyLink} type="button">{copied ? 'Copied!' : 'Copy link'}</button>
+        <div className="row wrap">
+          <button className="primary" onClick={act} disabled={action.kind === 'pending' || action.kind === 'signin'}>
+            {action.label}
+          </button>
+          <button className="link" onClick={copyLink} type="button">{copied ? 'Copied!' : 'Copy link'}</button>
+          <a className="link" href={spacePublicUrl} target="_blank" rel="noopener noreferrer">
+            Full Space ↗
+          </a>
+        </div>
       </header>
       {note && <p className="dim" role="status">{note}</p>}
       {p.bio && <section className="card"><h2>About</h2><p>{p.bio}</p></section>}
       <Standing p={p} />
+      {p.aithernetNode && (
+        <section className="card" aria-label="AitherNet node status">
+          <h2>AitherNet Node</h2>
+          <p>
+            <strong>{p.aithernetNode.label || `@${p.username} node`}</strong>
+            <span className="tag ok">{p.aithernetNode.status}</span>
+          </p>
+          {p.aithernetNode.models && p.aithernetNode.models.length > 0 && (
+            <ul className="chips" style={{ marginTop: 8 }}>
+              {p.aithernetNode.models.map(m => <li key={m} className="mono">{m}</li>)}
+            </ul>
+          )}
+        </section>
+      )}
+      {p.blocks && p.blocks.length > 0 && (
+        <section className="card stack-sm" aria-label="Space blocks">
+          <h2>AitherSpace Blocks</h2>
+          {p.blocks.map((b, idx) => (
+            <div key={`${b.type}-${idx}`} className="space-block">
+              <h3 className="mono small dim">{b.title || b.type}</h3>
+              {b.text && <p>{b.text}</p>}
+              {b.items && b.items.length > 0 && (
+                <ul className="rows">
+                  {b.items.map((it, j) => (
+                    <li key={j}>
+                      {it.url
+                        ? <a href={it.url} target="_blank" rel="noopener noreferrer">{it.label} ↗</a>
+                        : <strong>{it.label}</strong>}
+                      {it.detail && <span className="dim"> — {it.detail}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </section>
+      )}
       <Engineering p={p} />
       {p.relationship === 'self' && <Imported />}
       {p.work.length > 0 && (
@@ -104,8 +157,8 @@ function Standing({ p }: { p: P }) {
             <dl className="stats">
               <div><dt>reputation</dt><dd>{c.reputation ?? 0}</dd></div>
               <div><dt>level</dt><dd>{c.level ?? 1}</dd></div>
+              <div><dt>xp</dt><dd>{c.xp ?? 0}</dd></div>
               <div><dt>shipped</dt><dd>{c.shippedCount ?? 0}</dd></div>
-              <div><dt>projects</dt><dd>{c.projectCount ?? 0}</dd></div>
             </dl>
             {c.badges.length > 0 && <ul className="chips">{c.badges.map(b => <li key={b}>{b}</li>)}</ul>}
           </>
